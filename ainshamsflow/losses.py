@@ -1,13 +1,11 @@
 import numpy as np
 
-from ainshamsflow.utils.peras_errors import BaseClassError
+from ainshamsflow.metrics import Metric
+from ainshamsflow.utils.asf_errors import BaseClassError
 #TODO: Add More Losses
 
 
-class Loss:
-	def __call__(self, y_pred, y_true):
-		raise BaseClassError
-
+class Loss(Metric):
 	def diff(self, y_pred, y_true):
 		raise BaseClassError
 
@@ -23,7 +21,7 @@ class MSE(Loss):
 	def diff(self, y_pred, y_true):
 		assert y_true.shape == y_pred.shape
 		m = np.sum(y_true.shape[1])
-		return np. sum(y_pred - y_true, axis=1, keepdims=True) / m
+		return (y_pred - y_true) / m
 
 
 class MAE(Loss):

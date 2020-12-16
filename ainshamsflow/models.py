@@ -1,11 +1,12 @@
 import shelve
 import os
+import numpy as np
 
 from ainshamsflow.layers import Layer
 from ainshamsflow.optimizers import Optimizer
 from ainshamsflow.losses import Loss
 from ainshamsflow.metrics import Metric
-from ainshamsflow.utils.peras_errors import UncompiledModelError, MultipleAccessError, BaseClassError
+from ainshamsflow.utils.asf_errors import UncompiledModelError, MultipleAccessError, BaseClassError
 
 
 def load_model(filename):
@@ -22,8 +23,23 @@ class Model:
 		self.input_shape = (input_shape[0], None)
 		self.name = name
 
-	def compile(self, optimizer, loss, metrics, regularizer):
-		raise BaseClassError
+		self.optimizer = None
+		self.loss = None
+		self.metrics = None
+		self.regularizer = None
+
+	def compile(self, optimizer, loss, metrics=[], regularizer=None):
+		assert isinstance(optimizer, Optimizer)
+		assert isinstance(loss, Loss)
+		if metrics:
+			assert isinstance(metrics, list)
+			for metric in metrics:
+				assert isinstance(metric, Metric)
+
+		self.optimizer = optimizer
+		self.loss = loss
+		self.metrics = metrics
+		self.regularizer = regularizer
 
 	def evaluate(self, x, y, batch_size):
 		raise BaseClassError
@@ -40,7 +56,7 @@ class Model:
 	def get_layer(self, layer_name, index):
 		raise BaseClassError
 
-	def pop_layer(self, index):
+	def pop_layer(self):
 		raise BaseClassError
 
 	def load_weights(self, filepath):
@@ -50,7 +66,7 @@ class Model:
 		raise BaseClassError
 
 	def save_model(self, filepath):
-		with shelve.open(os.path.join(filepath, self.name)) as db:
+		with shelve.open(os.path.join(filepath, self.name + '.h5')) as db:
 			db['self'] = self
 
 	def summary(self):
@@ -66,39 +82,28 @@ class Sequential(Model):
 
 		input_shape = (input_size, None)
 		for layer in layers:
-			input_size = layer.__add_input_shape_to_layers(self, input_size)
+			input_size = layer.add_input_shape_to_layers(input_size)
 
 		super().__init__(input_shape, name)
 		self.layers = layers
 
-		self.optimizer   = None
-		self.loss        = None
-		self.metrics     = None
-		self.regularizer = None
-
-	def compile(self, optimizer, loss, metrics, regularizer):
-		assert isinstance(optimizer, Optimizer)
-		assert isinstance(loss, Loss)
-		assert isinstance(metrics, list)
-		for metric in metrics:
-			assert isinstance(metric, Metric)
-
-		self.optimizer = optimizer
-		self.loss = loss
-		self.metrics = metrics
-		self.regularizer = regularizer
-
-	def evaluate(self, x, y, batch_size):
+	def evaluate(self, x, y, batch_size=None, verbose=True):
 		if self.optimizer is None:
 			raise UncompiledModelError
-		history = self.optimizer(x, y, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer, training=True)
-		loss_value = history.loss_values[-1]
-		metric_values = history.metric_values[-1]
+		if batch_size is None:
+			m = x.shape[1]
+			batch_size = m
+		history = self.optimizer(x, y, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer, training=False)
+		loss_value = np.mean(history.loss_values)
+		metric_values = history._fliped_metrics()
 		return loss_value, metric_values
 
-	def fit(self, x, y, epochs, batch_size):
+	def fit(self, x, y, epochs, batch_size=None, verbose=True):
 		if self.optimizer is None:
 			raise UncompiledModelError
+		if batch_size is None:
+			m = x.shape[1]
+			batch_size = m
 		return self.optimizer(x, y, epochs, batch_size, self.layers, self.loss, self.metrics, self.regularizer, training=True)
 
 	def predict(self, x):
@@ -111,26 +116,19 @@ class Sequential(Model):
 		assert isinstance(layer, Layer)
 		self.layers.append(layer)
 
-	def get_layer(self, layer_name=None, index=None):
-		if index is None:
-			for layer in self.layers:
-				if layer.name == layer_name:
-					return layer
-		elif layer_name is None:
-			return self.layers[index]
+	def get_layer(self, index=None, layer_name=None):
+		if (index is None) ^ (layer_name is None):
+			if index is None:
+				for layer in self.layers:
+					if layer.name == layer_name:
+						return layer
+			else:
+				return self.layers[index]
 		else:
 			raise MultipleAccessError
 
-	def pop_layer(self, layer_name=None, index=None):
-		if index is None:
-			for i in range(len(self.layers)):
-				if self.layers[i].name == layer_name:
-					self.layers.pop(i)
-					return
-		elif layer_name is None:
-			return self.layers.pop(index)
-		else:
-			raise MultipleAccessError
+	def pop_layer(self):
+		self.layers.pop()
 
 	def load_weights(self, filepath):
 		with shelve.open(os.path.join(filepath, self.name+'_weights')) as db:
@@ -145,10 +143,10 @@ class Sequential(Model):
 				db[layer_name] = layer.get_weights()
 
 	def summary(self):
-		print('Sequential Model: {}'.format(self.name))
 		print()
+		print('Sequential Model: {}'.format(self.name))
 		print('_' * (20 + 13 + 11 + 11 + 20 + 4))
-		print('{:20s} {:13s} {:11s} {:11s} {:s}'.format('Layer Name:', 'num_of_params',
+		print('{:20s} | {:13s} | {:11s} | {:11s} | {:s}'.format('Layer Type:', 'num_of_params',
 														'input_shape', 'output_shape', 'layer_name'))
 		print('_' * (20 + 13 + 11 + 11 + 20 + 4))
 		# '{:20s} {:13d} {:11} {:11} {}'.format(layer_name, self.count_params(), input_shape, output_shape, self.name)

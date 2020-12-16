@@ -1,6 +1,6 @@
 import numpy as np
 
-from ainshamsflow.utils.peras_errors import BaseClassError
+from ainshamsflow.utils.asf_errors import BaseClassError
 #TODO: Add More Metrics
 
 
@@ -14,7 +14,8 @@ class HardAccuracy(Metric):
 
 	def __call__(self, y_pred, y_true):
 		assert y_true.shape == y_pred.shape
-		return np.count(y_pred == y_true)
+		m = y_true.shape[1]
+		return np.sum(y_pred == y_true) / m
 
 
 class SoftAccuracy(Metric):
@@ -22,4 +23,5 @@ class SoftAccuracy(Metric):
 
 	def __call__(self, y_pred, y_true):
 		assert y_true.shape == y_pred.shape
-		return 1 - np.sum(np.abs(y_pred - y_true)/y_true) / np.count(y_pred)
+		m = y_true.shape[1]
+		return 1 - np.sum(np.abs(y_pred - y_true)/y_true) / m
