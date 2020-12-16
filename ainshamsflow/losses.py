@@ -1,13 +1,11 @@
 import numpy as np
 
+from ainshamsflow.metrics import Metric
 from ainshamsflow.utils.asf_errors import BaseClassError
 #TODO: Add More Losses
 
 
-class Loss:
-	def __call__(self, y_pred, y_true):
-		raise BaseClassError
-
+class Loss(Metric):
 	def diff(self, y_pred, y_true):
 		raise BaseClassError
 

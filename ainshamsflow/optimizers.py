@@ -15,8 +15,15 @@ class Optimizer:
 		num_of_batches = int(m / batch_size)
 		rem_batch_size = m - batch_size * num_of_batches
 		history = History(loss, metrics)
+		if verbose:
+			print()
+			print()
+			if training:
+				print('Training Model for {} epochs:'.format(epochs))
+			else:
+				print('Evaluating Model:')
 
-		for _ in range(epochs):
+		for epoch_num in range(epochs):
 			loss_values = []
 			metrics_values = []
 			for i in range(num_of_batches):
@@ -37,6 +44,20 @@ class Optimizer:
 			loss_values = np.array(loss_values).sum()
 			metrics_values = np.array(metrics_values).mean(axis=0)
 			history.add(loss_values, metrics_values)
+			if verbose:
+				if training:
+					print(
+						'Finished epoch number {:4d}:'.format(epoch_num),
+						'{}={:.4f},'.format(loss.name, loss_values),
+						*['{}={:.4f},'.format(metric.name, metrics_values[j]) for j, metric in enumerate(metrics)]
+					)
+				else:
+					print(
+						'{}={:.4f},'.format(loss.name, loss_values),
+						*['{}={:.4f},'.format(metric.name, metrics_values[j]) for j, metric in enumerate(metrics)]
+
+					)
+
 		return history
 
 	def _single_iteration(self, batch_x, batch_y, m, layers, loss, metrics, regularizer, training):

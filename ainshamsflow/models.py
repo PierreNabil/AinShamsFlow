@@ -87,7 +87,7 @@ class Sequential(Model):
 		super().__init__(input_shape, name)
 		self.layers = layers
 
-	def evaluate(self, x, y, batch_size=None):
+	def evaluate(self, x, y, batch_size=None, verbose=True):
 		if self.optimizer is None:
 			raise UncompiledModelError
 		if batch_size is None:
@@ -98,7 +98,7 @@ class Sequential(Model):
 		metric_values = history._fliped_metrics()
 		return loss_value, metric_values
 
-	def fit(self, x, y, epochs, batch_size=None):
+	def fit(self, x, y, epochs, batch_size=None, verbose=True):
 		if self.optimizer is None:
 			raise UncompiledModelError
 		if batch_size is None:
