@@ -22,5 +22,5 @@ class Accuracy(Metric):
 
 	def __call__(self, y_pred, y_true):
 		assert y_true.shape == y_pred.shape
-		m = y_true.shape[1]
+		m = y_true.shape[0]
 		return np.sum(y_pred == y_true) / m

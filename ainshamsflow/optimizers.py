@@ -19,7 +19,7 @@ class Optimizer:
 		self.lr = lr
 
 	def __call__(self, x, y, epochs, batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
-		m = x.shape[1]
+		m = x.shape[0]
 		num_of_batches = int(m / batch_size)
 		rem_batch_size = m - batch_size * num_of_batches
 		history = History(loss, metrics)
@@ -35,8 +35,8 @@ class Optimizer:
 			loss_values = []
 			metrics_values = []
 			for i in range(num_of_batches):
-				batch_x = x[:, i * batch_size: (i + 1) * batch_size]
-				batch_y = y[:, i * batch_size: (i + 1) * batch_size]
+				batch_x = x[i * batch_size: (i + 1) * batch_size]
+				batch_y = y[i * batch_size: (i + 1) * batch_size]
 				loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
 																   loss, metrics, regularizer, training)
 				loss_values.append(loss_value)
@@ -50,7 +50,7 @@ class Optimizer:
 				loss_values.append(loss_value)
 				metrics_values.append(metric_values)
 			loss_values = np.array(loss_values).sum()
-			metrics_values = np.array(metrics_values).mean(axis=0)
+			metrics_values = np.array(metrics_values).mean(axis=1)
 			history.add(loss_values, metrics_values)
 			if verbose:
 				if training:

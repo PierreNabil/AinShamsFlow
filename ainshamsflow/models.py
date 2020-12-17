@@ -89,7 +89,7 @@ class Sequential(Model):
 		if self.optimizer is None:
 			raise UncompiledModelError
 		if batch_size is None:
-			m = x.shape[1]
+			m = x.shape[0]
 			batch_size = m
 		history = self.optimizer(x, y, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
 								 verbose=verbose, training=False)
@@ -101,7 +101,7 @@ class Sequential(Model):
 		if self.optimizer is None:
 			raise UncompiledModelError
 		if batch_size is None:
-			m = x.shape[1]
+			m = x.shape[0]
 			batch_size = m
 		return self.optimizer(x, y, epochs, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
 							  verbose=verbose, training=True)

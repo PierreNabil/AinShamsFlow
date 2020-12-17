@@ -23,12 +23,12 @@ class MSE(Loss):
 
 	def __call__(self, y_pred, y_true):
 		assert y_true.shape == y_pred.shape
-		m = np.sum(y_true.shape[1])
-		return np.sum(np.square(y_pred - y_true), axis=0, keepdims=True) / (2*m)
+		m = np.sum(y_true.shape[0])
+		return np.sum(np.square(y_pred - y_true)) / (2*m)
 
 	def diff(self, y_pred, y_true):
 		assert y_true.shape == y_pred.shape
-		m = np.sum(y_true.shape[1])
+		m = np.sum(y_true.shape[0])
 		return (y_pred - y_true) / m
 
 
@@ -37,12 +37,12 @@ class MAE(Loss):
 
 	def __call__(self, y_pred, y_true):
 		assert y_true.shape == y_pred.shape
-		m = np.sum(y_true.shape[1])
-		return np.sum(np.abs(y_pred - y_true), axis=0, keepdims=True) / m
+		m = np.sum(y_true.shape[0])
+		return np.sum(np.abs(y_pred - y_true)) / m
 
 	def diff(self, y_pred, y_true):
 		assert y_true.shape == y_pred.shape
-		m = np.sum(y_true.shape[1])
+		m = np.sum(y_true.shape[0])
 		return np.where(y_pred > y_true, 1, -1) / m
 
 
@@ -51,7 +51,7 @@ class MAPE(Loss):
 
 	def __call__(self, y_pred, y_true):
 		assert y_true.shape == y_pred.shape
-		m = y_true.shape[1]
+		m = y_true.shape[0]
 		return np.sum(np.abs(y_pred - y_true)/y_true) / m
 
 	def diff(self, y_pred, y_true):

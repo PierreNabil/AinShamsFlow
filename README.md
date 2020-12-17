@@ -103,22 +103,19 @@ example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsF
     
         DNN Layers:
         - [x] Dense
-        - [ ] BatchNorm
-        - [ ] Dropout
+        - [x] BatchNorm
+        - [x] Dropout
         
         CNN Layers:
         - [ ] Conv (1D and 2D)
         - [ ] Pool (Avg and Max)
         - [ ] GlobalPool
-        - [ ] Flatten
+        - [x] Flatten
         - [ ] Upsample (1D and 2D)
         
         Other Extra Functionality:
-        - [ ] Lambda
-        - [ ] Activation
-        - [ ] Add
-        - [ ] Concatenate
-        - [ ] Reshape
+        - [x] Activation
+        - [x] Reshape
 
     - [x] Initializers
         - [x] Constant
