@@ -1,8 +1,17 @@
 import numpy as np
 
-from ainshamsflow.utils.asf_errors import BaseClassError
+from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
 from ainshamsflow.utils.history import History
 #TODO: Add More Optimizers
+
+
+def get(opt_name):
+	opts = [SGD]
+	for opt in opts:
+		if opt.__name__.lower() == opt_name.lower():
+			return opt()
+	else:
+		raise NameNotFoundError(opt_name, __name__)
 
 
 class Optimizer:
@@ -10,7 +19,6 @@ class Optimizer:
 		self.lr = lr
 
 	def __call__(self, x, y, epochs, batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
-		#todo: add verbose parameter
 		m = x.shape[1]
 		num_of_batches = int(m / batch_size)
 		rem_batch_size = m - batch_size * num_of_batches
@@ -48,13 +56,13 @@ class Optimizer:
 				if training:
 					print(
 						'Finished epoch number {:4d}:'.format(epoch_num),
-						'{}={:.4f},'.format(loss.name, loss_values),
-						*['{}={:.4f},'.format(metric.name, metrics_values[j]) for j, metric in enumerate(metrics)]
+						'{}={:8.4f},'.format(loss.__name__, loss_values),
+						*['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
 					)
 				else:
 					print(
-						'{}={:.4f},'.format(loss.name, loss_values),
-						*['{}={:.4f},'.format(metric.name, metrics_values[j]) for j, metric in enumerate(metrics)]
+						'{}={:8.4f},'.format(loss.__name__, loss_values),
+						*['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
 
 					)
 
@@ -91,6 +99,8 @@ class Optimizer:
 
 
 class SGD(Optimizer):
+	__name__ = 'SGD'
+
 	def _update(self, weights, dw):
 		assert weights.shape == dw.shape
 		return weights - self.lr * dw

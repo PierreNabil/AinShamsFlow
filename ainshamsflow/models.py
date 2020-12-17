@@ -69,7 +69,7 @@ class Model:
 		with shelve.open(os.path.join(filepath, self.name + '.h5')) as db:
 			db['self'] = self
 
-	def summary(self):
+	def print_summary(self):
 		raise BaseClassError
 
 
@@ -93,9 +93,10 @@ class Sequential(Model):
 		if batch_size is None:
 			m = x.shape[1]
 			batch_size = m
-		history = self.optimizer(x, y, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer, training=False)
+		history = self.optimizer(x, y, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
+								 verbose=verbose, training=False)
 		loss_value = np.mean(history.loss_values)
-		metric_values = history._fliped_metrics()
+		metric_values = history.fliped_metrics()
 		return loss_value, metric_values
 
 	def fit(self, x, y, epochs, batch_size=None, verbose=True):
@@ -104,7 +105,8 @@ class Sequential(Model):
 		if batch_size is None:
 			m = x.shape[1]
 			batch_size = m
-		return self.optimizer(x, y, epochs, batch_size, self.layers, self.loss, self.metrics, self.regularizer, training=True)
+		return self.optimizer(x, y, epochs, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
+							  verbose=verbose, training=True)
 
 	def predict(self, x):
 		a = x
@@ -142,7 +144,7 @@ class Sequential(Model):
 				layer_name = 'layer{:03d}'.format(i)
 				db[layer_name] = layer.get_weights()
 
-	def summary(self):
+	def print_summary(self):
 		print()
 		print('Sequential Model: {}'.format(self.name))
 		print('_' * (20 + 13 + 11 + 11 + 20 + 4))

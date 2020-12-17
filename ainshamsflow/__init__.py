@@ -1,5 +1,6 @@
 import ainshamsflow.activations as activations
 import ainshamsflow.data as data
+import ainshamsflow.initializers as initializers
 import ainshamsflow.layers as layers
 import ainshamsflow.losses as losses
 import ainshamsflow.metrics as metrics

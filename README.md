@@ -117,11 +117,11 @@ example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsF
         - [ ] Concatenate
         - [ ] Reshape
 
-    - [ ] Initializers
-        - [ ] Constant
-        - [ ] Uniform
-        - [ ] Normal
-        - [ ] Identity
+    - [x] Initializers
+        - [x] Constant
+        - [x] Uniform
+        - [x] Normal
+        - [x] Identity
         
     - [ ] Losses
         - [x] MSE  (Mean Squared Error)
