@@ -17,10 +17,9 @@ def load_model(filename):
 
 class Model:
 	def __init__(self, input_shape, name):
-		assert isinstance(input_shape[0], int)
 		assert isinstance(name, str)
 
-		self.input_shape = (input_shape[0], None)
+		self.input_shape = input_shape
 		self.name = name
 
 		self.optimizer = None
@@ -74,15 +73,14 @@ class Model:
 
 
 class Sequential(Model):
-	def __init__(self, layers, input_size, name):
+	def __init__(self, layers, input_shape, name):
 		assert isinstance(layers, list)
 		for layer in layers:
 			assert isinstance(layer, Layer)
-		assert isinstance(input_size, int)
+		assert isinstance(input_shape, tuple)
 
-		input_shape = (input_size, None)
 		for layer in layers:
-			input_size = layer.add_input_shape_to_layers(input_size)
+			input_shape = layer.add_input_shape_to_layers(input_shape)
 
 		super().__init__(input_shape, name)
 		self.layers = layers
@@ -145,13 +143,13 @@ class Sequential(Model):
 				db[layer_name] = layer.get_weights()
 
 	def print_summary(self):
+		spacer = '+' + '-' * 21 + '+' + '-' * 15 + '+' + '-' * 23 + '+' + '-' * 23 + '+' + '-' * 31 + '+'
 		print()
 		print('Sequential Model: {}'.format(self.name))
-		print('_' * (20 + 13 + 11 + 11 + 20 + 4))
-		print('{:20s} | {:13s} | {:11s} | {:11s} | {:s}'.format('Layer Type:', 'num_of_params',
+		print(spacer)
+		print('|{:20s} | {:13s} | {:>21s} | {:>21s} | {:30s}|'.format('Layer Type:', 'num_of_params',
 														'input_shape', 'output_shape', 'layer_name'))
-		print('_' * (20 + 13 + 11 + 11 + 20 + 4))
-		# '{:20s} {:13d} {:11} {:11} {}'.format(layer_name, self.count_params(), input_shape, output_shape, self.name)
+		print(spacer)
 		for layer in self.layers:
-			print(layer.summary())
-		print('_' * (20 + 13 + 11 + 11 + 20 + 4))
+			print('|', layer.summary(), '|', sep='')
+		print(spacer)

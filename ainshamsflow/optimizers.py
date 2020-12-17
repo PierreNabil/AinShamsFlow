@@ -73,7 +73,7 @@ class Optimizer:
 		#Forward Pass
 		batch_a = [batch_x]
 		for j, layer in enumerate(layers):
-			batch_a.append(layer(batch_a[j]))
+			batch_a.append(layer(batch_a[j], training))
 		regularization_term = 0 if regularizer is None else regularizer(weights_list, m)
 		loss_value = loss(batch_a[-1], batch_y) + regularization_term
 		metric_values = []
@@ -84,8 +84,8 @@ class Optimizer:
 		da = loss.diff(batch_a[-1], batch_y)
 		if training:
 			for j in reversed(range(len(layers))):
+				da, dw, db = layers[j].diff(da)
 				if layers[j].trainable:
-					da, dw, db = layers[j].diff(da)
 					if regularization_diff is not None:
 						dw += regularization_diff[j]
 					weights, biases = layers[j].get_weights()

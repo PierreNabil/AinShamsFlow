@@ -100,16 +100,19 @@ example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsF
         - [ ] Swish
 
     - [ ] Layers
+    
         DNN Layers:
         - [x] Dense
         - [ ] BatchNorm
         - [ ] Dropout
+        
         CNN Layers:
         - [ ] Conv (1D and 2D)
         - [ ] Pool (Avg and Max)
         - [ ] GlobalPool
         - [ ] Flatten
         - [ ] Upsample (1D and 2D)
+        
         Other Extra Functionality:
         - [ ] Lambda
         - [ ] Activation
