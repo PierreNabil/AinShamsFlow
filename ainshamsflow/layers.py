@@ -20,10 +20,9 @@ def get(layer_name):
 class Layer:
 	def __init__(self, name, trainable):
 		assert isinstance(trainable, bool)
-		assert isinstance(name, str)
 
 		self.trainable = trainable
-		self.name = name
+		self.name = str(name)
 		self.input_shape = None
 		self.output_shape = None
 
@@ -55,9 +54,9 @@ class Layer:
 class Dense(Layer):
 	__name__ = 'Dense'
 
-	def __init__(self, n_out, name, activation=activations.Linear(),
+	def __init__(self, n_out, activation=activations.Linear(),
 				 weights_init=initializers.Normal(), biases_init=initializers.Constant(0),
-				 trainable=True):
+				 trainable=True, name=None):
 		assert isinstance(n_out, int)
 		assert n_out > 0
 		assert isinstance(activation, activations.Activation)
@@ -126,10 +125,10 @@ class Dense(Layer):
 class BatchNorm(Layer):
 	__name__ = 'BatchNorm'
 
-	def __init__(self, name, epsilon=0.001, momentum=0.99,
+	def __init__(self, epsilon=0.001, momentum=0.99,
 				 gamma_init=initializers.Constant(1), beta_init=initializers.Constant(0),
 				 mu_init=initializers.Constant(0), sig_init=initializers.Constant(1),
-				 trainable=True):
+				 trainable=True, name=None):
 		assert isinstance(epsilon, float)
 		assert 0 < epsilon < 1
 		assert isinstance(momentum, float)
@@ -212,7 +211,7 @@ class BatchNorm(Layer):
 class Dropout(Layer):
 	__name__ = 'Dropout'
 
-	def __init__(self, prob, name):
+	def __init__(self, prob, name=None):
 		assert 0 < prob <= 1
 		self.rate = prob
 
@@ -276,7 +275,7 @@ class GlobalMaxPool(Layer):
 class Flatten(Layer):
 	__name__ = 'Flatten'
 
-	def __init__(self, name):
+	def __init__(self, name=None):
 		super().__init__(name, False)
 		self.n_out = None
 		self.n_in = None
@@ -314,14 +313,17 @@ class Upsample2D(Layer):
 class Activation(Layer):
 	__name__ = 'Activation'
 
-	def __init__(self, act):
+	def __init__(self, act, name=None):
 		assert isinstance(act, str) or isinstance(act, activations.Activation)
 		if isinstance(act, str):
 			self.activation = activations.get(act)
-			super().__init__(act, False)
 		else:
 			self.activation = act
-			super().__init__(act.__name__, False)
+			act = act.__name__
+		if name is None:
+			super().__init__(act, False)
+		else:
+			super().__init__(name, False)
 
 		self.n_in = None
 		self.n_out = None
@@ -346,7 +348,7 @@ class Activation(Layer):
 class Reshape(Layer):
 	__name__ = 'Reshape'
 
-	def __init__(self, n_out, name):
+	def __init__(self, n_out, name=None):
 		assert isinstance(n_out, tuple)
 		for ch in n_out:
 			assert ch > 0

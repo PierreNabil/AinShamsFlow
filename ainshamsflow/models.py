@@ -17,10 +17,8 @@ def load_model(filename):
 
 class Model:
 	def __init__(self, input_shape, name):
-		assert isinstance(name, str)
-
 		self.input_shape = input_shape
-		self.name = name
+		self.name = str(name)
 
 		self.optimizer = None
 		self.loss = None
@@ -73,7 +71,7 @@ class Model:
 
 
 class Sequential(Model):
-	def __init__(self, layers, input_shape, name):
+	def __init__(self, layers, input_shape, name=None):
 		assert isinstance(layers, list)
 		for layer in layers:
 			assert isinstance(layer, Layer)
