@@ -4,16 +4,16 @@ import matplotlib.pyplot as plt
 
 class History:
 	def __init__(self, loss, metrics=[]):
-		self.loss_values = []	#(num_of_terations,)
-		self.metric_values = []	#(,)
-		self.loss_name = loss.name
-		self.metric_names = [metric.name for metric in metrics]
+		self.loss_values = []
+		self.metric_values = []
+		self.loss_name = loss.__name__
+		self.metric_names = [metric.__name__ for metric in metrics]
 
 	def add(self, loss_value, metric_values):
 		self.loss_values.append(loss_value)
 		self.metric_values.append(metric_values)
 
-	def _fliped_metrics(self):
+	def fliped_metrics(self):
 		return np.array(self.metric_values).T
 
 	def show(self, show_metrics=True):
@@ -31,7 +31,7 @@ class History:
 
 		# Accuracy Plots:
 		if self.metric_names and show_metrics:
-			for j, metric_values in enumerate(self._fliped_metrics()):
+			for j, metric_values in enumerate(self.fliped_metrics()):
 				axs[j+1, 0].plot(metric_values)
 				if j==0:
 					axs[j+1, 0].set_title('Model Metrics')

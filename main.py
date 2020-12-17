@@ -9,20 +9,21 @@ print(x)
 print(y)
 
 model = asf.models.Sequential([
-	asf.layers.Dense(3, asf.activations.ReLU(), 'layer_1'),
-	asf.layers.Dense(1, asf.activations.Linear(), 'layer_2')
+	asf.layers.Dense(3, name='layer_1'),
+	asf.layers.Dense(1, name='layer_2')
 ], 1, 'simple_model')
 
 model.compile(
 	optimizer=asf.optimizers.SGD(lr=0.02),
 	loss=asf.losses.MSE(),
-	metrics=[asf.metrics.SoftAccuracy(), asf.metrics.HardAccuracy()],
+	metrics=[asf.losses.MAPE()],
 	regularizer=asf.regularizers.L2(1)
 )
 
-model.summary()
+model.print_summary()
 
-history = model.fit(x, y, 100, 3)
+history = model.fit(x, y, 100, verbose=False)
+history.show()
 history.show()
 model.predict(x)
 model.evaluate(x, y, 3)
