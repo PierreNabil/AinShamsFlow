@@ -1,3 +1,8 @@
+"""Metrics Module.
+
+In this Module, we include our loss functions such as Accuracy.
+"""
+
 import numpy as np
 
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
@@ -5,6 +10,8 @@ from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
 
 
 def get(metric_name):
+	"""Get any Metric in this Module by name."""
+
 	metrics = [Accuracy]
 	for metric in metrics:
 		if metric.__name__.lower() == metric_name.lower():
@@ -13,11 +20,21 @@ def get(metric_name):
 
 
 class Metric:
+	"""Metrics Base Class.
+
+	To create a new Metric, create a class that inherits from
+	this class.
+	You then have to add any parameters in your constructor
+	and redefine the __call__() method.
+	"""
+
 	def __call__(self, y_pred, y_true):
 		raise BaseClassError
 
 
 class Accuracy(Metric):
+	"""Accuracy Metric."""
+
 	__name__ = 'Accuracy'
 
 	def __call__(self, y_pred, y_true):

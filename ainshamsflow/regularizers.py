@@ -1,3 +1,8 @@
+"""Regularizers Module.
+
+In this Module, we include our Regularizers such as L1 and L2.
+"""
+
 import numpy as np
 
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
@@ -5,6 +10,8 @@ from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
 
 
 def get(reg_name):
+	"""Get any Regularizer in this Module by name."""
+
 	regs = [L2, L1]
 	for reg in regs:
 		if reg.__name__.lower() == reg_name.lower():
@@ -14,7 +21,20 @@ def get(reg_name):
 
 
 class Regularizer:
+	"""Regularizer Base Class.
+
+	Used to define Regularizer Interface.
+
+	To create a new Regularizer, create a class that inherits from
+	this class.
+	You then have to add any extra parameters in your constructor
+	(while still calling this class' constructor) and redefining
+	the __call__() and diff() methods.
+	"""
+
 	def __init__(self, lambd):
+		"""Initialize Lambda."""
+
 		self.lambd = lambd
 
 	def __call__(self, weights_list, m):
@@ -25,6 +45,8 @@ class Regularizer:
 
 
 class L2(Regularizer):
+	"""L2 Reguarizer."""
+
 	__name__ = 'L2'
 
 	def __call__(self, weights_list, m):
@@ -35,6 +57,8 @@ class L2(Regularizer):
 
 
 class L1(Regularizer):
+	"""L1 Regularizer."""
+
 	__name__ = 'L1'
 
 	def __call__(self, weights_list, m):

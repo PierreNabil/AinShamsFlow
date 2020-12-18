@@ -1,6 +1,7 @@
+"""Used to test all created objects."""
+
 import ainshamsflow as asf
 import numpy as np
-#TODO: Test what has been done thus far
 
 x = np.arange(10).reshape((-1, 1))
 y = 2*x+1
@@ -9,13 +10,13 @@ print(y)
 
 model = asf.models.Sequential([
 	asf.layers.Dense(8),
-	asf.layers.Reshape((2, 2, 2)),
+	asf.layers.Reshape((2, 2, -1)),
 	asf.layers.BatchNorm(),
 	asf.layers.Dropout(0.9),
 	asf.layers.Flatten(),
 	asf.layers.Dense(1),
 	asf.layers.Activation('leakyrelu')
-], input_shape=(1,))
+], input_shape=(1,), name='my_model')
 
 model.compile(
 	optimizer=asf.optimizers.SGD(lr=0.0001),
@@ -29,3 +30,9 @@ history = model.fit(x, y, 100, verbose=False)
 history.show()
 print(model.predict(x))
 model.evaluate(x, y, 3)
+
+model.save_model('.\\test_model')
+
+model2 = asf.models.load_model('.\\test_model\\my_model')
+
+model2.print_summary()

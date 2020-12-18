@@ -1,3 +1,9 @@
+"""Optimizers Module.
+
+In this Module, we include our optimization algorithms such as
+Stocastic Gradient Descent (SGD).
+"""
+
 import numpy as np
 
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
@@ -6,6 +12,8 @@ from ainshamsflow.utils.history import History
 
 
 def get(opt_name):
+	"""Get any Optimizer in this Module by name."""
+
 	opts = [SGD]
 	for opt in opts:
 		if opt.__name__.lower() == opt_name.lower():
@@ -15,10 +23,24 @@ def get(opt_name):
 
 
 class Optimizer:
+	"""Optimiser Base Class.
+
+	Used to generalize learning using Gradient Descent.
+
+	Creating a new optimizer is as easy as creating a new class that
+	inherits from this class.
+	You then have to add any extra parameters in your constructor
+	(while still calling this class' constructor) and redefine the
+	_update() method.
+	"""
+
 	def __init__(self, lr=0.01):
+		"""Initialize the Learning Rate."""
 		self.lr = lr
 
 	def __call__(self, x, y, epochs, batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
+		"""Run optimization using Gradient Descent. Return History Object for training session."""
+
 		m = x.shape[0]
 		num_of_batches = int(m / batch_size)
 		rem_batch_size = m - batch_size * num_of_batches
@@ -69,6 +91,8 @@ class Optimizer:
 		return history
 
 	def _single_iteration(self, batch_x, batch_y, m, layers, loss, metrics, regularizer, training):
+		"""Run optimization for a single batch. Return loss value and metric values for iteration."""
+
 		weights_list = [layer.get_weights()[0] for layer in layers]
 		#Forward Pass
 		batch_a = [batch_x]
@@ -80,7 +104,7 @@ class Optimizer:
 		for metric in metrics:
 			metric_values.append(metric(batch_a[-1], batch_y))
 		#Backward Pass
-		regularization_diff = None if  regularizer is None else regularizer.diff(weights_list, m)
+		regularization_diff = None if regularizer is None else regularizer.diff(weights_list, m)
 		da = loss.diff(batch_a[-1], batch_y)
 		if training:
 			for j in reversed(range(len(layers))):
@@ -99,8 +123,11 @@ class Optimizer:
 
 
 class SGD(Optimizer):
+	"""Stochastic Gradient Descent Algorithm."""
+
 	__name__ = 'SGD'
 
 	def _update(self, weights, dw):
+		"""Update step for SGD."""
 		assert weights.shape == dw.shape
 		return weights - self.lr * dw

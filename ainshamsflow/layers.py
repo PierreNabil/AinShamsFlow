@@ -1,12 +1,19 @@
+"""Layers Module.
+
+In this Module, we include our Layers such as Dense and Conv Layers.
+"""
+
 import numpy as np
 
 from ainshamsflow import activations
 from ainshamsflow import initializers
-from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
+from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
 #TODO: Add More Layers
 
 
 def get(layer_name):
+	"""Get any Layer in this Module by name."""
+
 	layers = [Dense, BatchNorm, Dropout,
 			  Conv1D, Conv2D, AvgPool, MaxPool, GlobalAvgPool, GlobalMaxPool, Flatten, Upsample1D, Upsample2D,
 			  Activation, Reshape]
@@ -18,7 +25,19 @@ def get(layer_name):
 
 
 class Layer:
+	"""Activation Base Class.
+
+	To create a new Layer, create a class that inherits from this class.
+	You then have to add any parameters in your constructor
+	(while still calling this class' constructor) and redefine the
+	__call__(), diff(), add_input_shape_to_layer(), (Manditory)
+	count_params(), get_weights() and set_weights() (Optional)
+	methods.
+	"""
+
 	def __init__(self, name, trainable):
+		"""Initialize the name and trainable parameter of the layer."""
+
 		assert isinstance(trainable, bool)
 
 		self.trainable = trainable
@@ -36,22 +55,34 @@ class Layer:
 		raise BaseClassError
 
 	def count_params(self):
+		"""No Parameters in this layer. Returns 0."""
 		return 0
 
 	def get_weights(self):
+		"""No Parameters in this layer. Returns 0, 0."""
 		return 0, 0
 
 	def set_weights(self, weights, biases):
+		"""No Parameters in this layer. Do nothing."""
 		return
 
 	def summary(self):
-		return '{:20s} | {:13d} | {:>21} | {:>21} | {:30}'.format(self.__name__ + ' Layer:', self.count_params(),
-													   self.input_shape, self.output_shape, self.name)
+		"""return a summary string of the layer.
+
+		used in model.print_summary()
+		"""
+
+		return '{:20s} | {:13d} | {:>21} | {:>21} | {:30}'.format(
+			self.__name__ + ' Layer:', self.count_params(), self.input_shape, self.output_shape, self.name
+		)
+
 
 # DNN Layers:
 
 
 class Dense(Layer):
+	"""Dense (Fully Connected) Layer."""
+
 	__name__ = 'Dense'
 
 	def __init__(self, n_out, activation=activations.Linear(),
@@ -59,6 +90,8 @@ class Dense(Layer):
 				 trainable=True, name=None):
 		assert isinstance(n_out, int)
 		assert n_out > 0
+		if isinstance(activation, str):
+			activation = activations.get(activation)
 		assert isinstance(activation, activations.Activation)
 
 		super().__init__(name, trainable)
@@ -123,6 +156,8 @@ class Dense(Layer):
 
 
 class BatchNorm(Layer):
+	"""Batch Normalization Layer."""
+
 	__name__ = 'BatchNorm'
 
 	def __init__(self, epsilon=0.001, momentum=0.99,
@@ -146,7 +181,7 @@ class BatchNorm(Layer):
 		self.mu_init = mu_init
 		self.sig_init = sig_init
 
-		self.n = None
+		self.n_out = None
 		self.input_shape = None
 		self.output_shape = None
 
@@ -158,13 +193,13 @@ class BatchNorm(Layer):
 		self.x_norm = None
 
 	def add_input_shape_to_layers(self, n):
-		self.n = (1,) + n
+		self.n_out = (1,) + n
 		self.input_shape = self.output_shape = '(None' + (',{:4}' * len(n)).format(*n) + ')'
 
-		self.gamma = self.gamma_init(self.n)
-		self.beta = self.beta_init(self.n)
-		self.mu = self.mu_init(self.n)
-		self.sig = self.sig_init(self.n)
+		self.gamma = self.gamma_init(self.n_out)
+		self.beta = self.beta_init(self.n_out)
+		self.mu = self.mu_init(self.n_out)
+		self.sig = self.sig_init(self.n_out)
 
 		return n
 
@@ -195,20 +230,26 @@ class BatchNorm(Layer):
 		return dx, dgamma, dbeta
 
 	def count_params(self):
-		return np.prod(self.n) * 2
+		return np.prod(self.n_out) * 2
 
 	def get_weights(self):
 		return self.gamma, self.beta
 
 	def set_weights(self, gamma, beta):
-		assert gamma.shape == self.n
-		assert beta.shape == self.n
+		assert gamma.shape == self.n_out
+		assert beta.shape == self.n_out
 
 		self.gamma = np.array(gamma)
 		self.beta = np.array(beta)
 
 
 class Dropout(Layer):
+	"""Dropout Layer.
+
+	Remove some neurons from the preveous layer at random
+	with probability p.
+	"""
+
 	__name__ = 'Dropout'
 
 	def __init__(self, prob, name=None):
@@ -216,18 +257,18 @@ class Dropout(Layer):
 		self.rate = prob
 
 		super().__init__(name, False)
-		self.n = None
+		self.n_out = None
 		self.input_shape = None
 		self.output_shape = None
 		self.filters = None
 
 	def add_input_shape_to_layers(self, n):
-		self.n = n
+		self.n_out = n
 		self.input_shape = self.output_shape = '(None' + (',{:4}'*len(n)).format(*n) + ')'
 		return n
 
 	def __call__(self, x, training=False):
-		assert x.shape[1:] == self.n
+		assert x.shape[1:] == self.n_out
 		self.filter = np.random.rand(*x.shape) < self.rate if training else 1
 		return self.filter * x
 
@@ -240,39 +281,59 @@ class Dropout(Layer):
 
 
 class Conv1D(Layer):
+	"""1-Dimensional Convolution Layer."""
+
 	__name__ = 'Conv1D'
 	pass
 
 
 class Conv2D(Layer):
+	"""2-Dimensional Convolution Layer."""
+
 	__name__ = 'Conv2D'
 	#TODO: Write Conv2D Layer
 	pass
 
 
 class AvgPool(Layer):
+	"""Average Pooling Layer."""
+
 	__name__ = 'AvgPool'
 	#TODO: Write AvgPool Layer
 	pass
 
 
 class MaxPool(Layer):
+	"""Maximum Pooling Layer."""
+
 	__name__ = 'MaxPool'
 	#TODO: Write MaxPool Layer
 	pass
 
 
 class GlobalAvgPool(Layer):
+	"""Global Average Pooling Layer."""
+
 	__name__ = 'GlobalAvgPool'
 	pass
 
 
 class GlobalMaxPool(Layer):
+	"""Global Maximum Pooling Layer."""
+
 	__name__ = 'GlobalMaxPool'
 	pass
 
 
 class Flatten(Layer):
+	"""Flatten Layer.
+
+	Flatten the output of the previous layer into a
+	single feature vector.
+
+	Equivalent to Reshape((-1,))
+	"""
+
 	__name__ = 'Flatten'
 
 	def __init__(self, name=None):
@@ -298,11 +359,15 @@ class Flatten(Layer):
 
 
 class Upsample1D(Layer):
+	"""1-Dimensional Up Sampling Layer."""
+
 	__name__ = 'Upsample1D'
 	pass
 
 
 class Upsample2D(Layer):
+	"""2-Dimensional Up Sampling Layer."""
+
 	__name__ = 'Upsample2D'
 	pass
 
@@ -311,6 +376,8 @@ class Upsample2D(Layer):
 
 
 class Activation(Layer):
+	"""Activation Layer."""
+
 	__name__ = 'Activation'
 
 	def __init__(self, act, name=None):
@@ -346,12 +413,26 @@ class Activation(Layer):
 
 
 class Reshape(Layer):
+	"""Reshape Layer.
+
+	Reshape the precious layer's output to any compatible shape.
+	"""
+
 	__name__ = 'Reshape'
 
 	def __init__(self, n_out, name=None):
 		assert isinstance(n_out, tuple)
-		for ch in n_out:
-			assert ch > 0
+
+		num_of_unk_ch = 0
+		self.unk_ch_id = None
+		for i, ch in enumerate(n_out):
+			if ch == -1 or ch is None:
+				if num_of_unk_ch:
+					raise UnsupportedShapeError(n_out, 'a shape with less than one unknown dimension.')
+				num_of_unk_ch += 1
+				self.unk_ch_id = i
+			else:
+				assert ch > 0
 
 		super().__init__(name, False)
 		self.n_out = n_out
@@ -361,6 +442,13 @@ class Reshape(Layer):
 
 	def add_input_shape_to_layers(self, n_in):
 		self.n_in = n_in
+
+		if self.unk_ch_id is not None:
+			n_out = list(self.n_out)
+			n_out.pop(self.unk_ch_id)
+			new_dim = np.prod(n_in) // np.prod(n_out)
+			self.n_out = self.n_out[:self.unk_ch_id] + (new_dim,) + self.n_out[self.unk_ch_id+1:]
+
 		self.input_shape = '(None' + (',{:4}'*len(self.n_in)).format(*self.n_in) + ')'
 		self.output_shape = '(None' + (',{:4}'*len(self.n_out)).format(*self.n_out) + ')'
 		return self.n_out
