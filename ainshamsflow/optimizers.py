@@ -95,17 +95,17 @@ class Optimizer:
 
 		weights_list = [layer.get_weights()[0] for layer in layers]
 		#Forward Pass
-		batch_a = [batch_x]
+		batch_a = batch_x
 		for j, layer in enumerate(layers):
-			batch_a.append(layer(batch_a[j], training))
+			batch_a = layer(batch_a, training)
 		regularization_term = 0 if regularizer is None else regularizer(weights_list, m)
-		loss_value = loss(batch_a[-1], batch_y) + regularization_term
+		loss_value = loss(batch_a, batch_y) + regularization_term
 		metric_values = []
 		for metric in metrics:
-			metric_values.append(metric(batch_a[-1], batch_y))
+			metric_values.append(metric(batch_a, batch_y))
 		#Backward Pass
 		regularization_diff = None if regularizer is None else regularizer.diff(weights_list, m)
-		da = loss.diff(batch_a[-1], batch_y)
+		da = loss.diff(batch_a, batch_y)
 		if training:
 			for j in reversed(range(len(layers))):
 				da, dw, db = layers[j].diff(da)
@@ -129,5 +129,11 @@ class SGD(Optimizer):
 
 	def _update(self, weights, dw):
 		"""Update step for SGD."""
-		assert weights.shape == dw.shape
-		return weights - self.lr * dw
+		if isinstance(weights, list) and isinstance(dw, list):
+			ans = []
+			for weight, d in zip(weights, dw):
+				ans.append(weight - self.lr * d)
+			return ans
+		else:
+			assert np.shape(weights) == np.shape(dw)
+			return weights - self.lr * dw

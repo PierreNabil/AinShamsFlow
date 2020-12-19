@@ -29,7 +29,7 @@ def load_model(filename):
 class Model(Layer):
 	"""Models Base Class."""
 
-	def __init__(self, input_shape, name):
+	def __init__(self, input_shape, name, trainable=True):
 		"""Initialize model name."""
 
 		assert isinstance(input_shape, tuple)
@@ -37,8 +37,11 @@ class Model(Layer):
 		for ch in input_shape:
 			assert ch > 0
 
-		self.name = str(name)
+		super().__init__(name, trainable)
 		self.n_in = input_shape
+		self.n_out = None
+		self.input_shape = '(None' + (',{:4}'*len(self.n_in)).format(*self.n_in) + ')'
+		self.output_shape = None
 
 		self.optimizer = None
 		self.loss = None
@@ -103,7 +106,7 @@ class Sequential(Model):
 	structure.
 	"""
 
-	__name__ = 'Sequential Model'
+	__name__ = 'Seq. Model'
 
 	def __init__(self, layers, input_shape, name=None):
 		"""Define the model layers, input shape and name."""
@@ -118,6 +121,9 @@ class Sequential(Model):
 
 		for layer in self.layers:
 			input_shape = layer.add_input_shape_to_layers(input_shape)
+
+		self.n_out = self.layers[-1].n_out
+		self.output_shape = '(None' + (',{:4}'*len(self.n_out)).format(*self.n_out) + ')'
 
 	def fit(self, x, y, epochs, batch_size=None, verbose=True):
 		"""Fit the model to the training data."""
@@ -225,17 +231,18 @@ class Sequential(Model):
 		return a
 
 	def diff(self, da):
-		Da = Dw = Db = []
+		Dw = []
+		Db = []
 
 		for layer in reversed(self.layers):
 			da, dw, db = layer.diff(da)
-			Da.append(da)
-			Dw.append(dw)
-			Db.append(db)
+			if layer.trainable:
+				Dw.insert(0, dw)
+				Db.insert(0, db)
 
-		return Da, Dw, Db
+		return da, Dw, Db
 
-	def add_input_shape_to_layer(self, n_in):
+	def add_input_shape_to_layers(self, n_in):
 		if n_in != self.n_in:
 			raise UnsupportedShapeError(n_in, self.n_in)
 		if self.layers:
@@ -248,12 +255,12 @@ class Sequential(Model):
 			return np.sum([layer.count_params() for layer in self.layers])
 
 	def get_weights(self):
-		w_and_b = [layer.get_weights() for layer in self.layers]
-		weights = [layer_w_and_b[0] for layer_w_and_b in w_and_b]
-		biases  = [layer_w_and_b[1] for layer_w_and_b in w_and_b]
+		w_and_b = np.array([layer.get_weights() for layer in self.layers if layer.trainable])
+		weights = list(w_and_b[:, 0])
+		biases  = list(w_and_b[:, 1])
 		return weights, biases
-
 
 	def set_weights(self, weights, biases):
 		for i, layer in enumerate(self.layers):
-			layer.set_weights(weights[i], biases[i])
+			if layer.trainable:
+				layer.set_weights(weights[i], biases[i])

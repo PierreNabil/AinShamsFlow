@@ -60,7 +60,7 @@ class Layer:
 
 	def get_weights(self):
 		"""No Parameters in this layer. Returns 0, 0."""
-		return 0, 0
+		return np.array([[0]]), np.array([[0]])
 
 	def set_weights(self, weights, biases):
 		"""No Parameters in this layer. Do nothing."""
@@ -95,8 +95,8 @@ class Dense(Layer):
 		assert isinstance(activation, activations.Activation)
 
 		super().__init__(name, trainable)
-		self.n_in  = 1
-		self.n_out = n_out
+		self.n_in  = (1,)
+		self.n_out = (n_out,)
 		self.weights_init = weights_init
 		self.biases_init = biases_init
 		self.activation = activation
@@ -112,17 +112,17 @@ class Dense(Layer):
 	def add_input_shape_to_layers(self, n_in):
 		assert len(n_in) == 1
 
-		self.n_in = n_in[0]
-		self.weights = self.weights_init((self.n_in, self.n_out))
-		self.biases = self.biases_init((1, self.n_out))
+		self.n_in = n_in
+		self.weights = self.weights_init((self.n_in[0], self.n_out[0]))
+		self.biases = self.biases_init((1, self.n_out[0]))
 
-		self.input_shape = '(None,{:4d})'.format(self.n_in)
-		self.output_shape = '(None,{:4d})'.format(self.n_out)
+		self.input_shape = '(None,{:4d})'.format(self.n_in[0])
+		self.output_shape = '(None,{:4d})'.format(self.n_out[0])
 
-		return tuple([self.n_out])
+		return self.n_out
 
 	def __call__(self, x, training=False):
-		assert x.shape[1:] == (self.n_in,)
+		assert x.shape[1:] == self.n_in
 		self.x = x
 		self.z = np.dot(x, self.weights) + self.biases
 		return self.activation(self.z)
@@ -142,14 +142,14 @@ class Dense(Layer):
 		return dx, dw, db
 
 	def count_params(self):
-		return self.n_out * (self.n_in + 1)
+		return self.n_out[0] * (self.n_in[0] + 1)
 
 	def get_weights(self):
 		return self.weights, self.biases
 
 	def set_weights(self, weights, biases):
-		assert weights.shape == (self.n_in, self.n_out)
-		assert biases.shape == (1, self.n_out)
+		assert weights.shape == (self.n_in[0], self.n_out[0])
+		assert biases.shape == (1, self.n_out[0])
 
 		self.weights = np.array(weights)
 		self.biases = np.array(biases)
@@ -274,7 +274,7 @@ class Dropout(Layer):
 
 	def diff(self, da):
 		dx = self.filter * da
-		return dx, 0, 0
+		return dx, np.array([[0]]), np.array([[0]])
 
 
 # CNN Layers:
@@ -355,7 +355,7 @@ class Flatten(Layer):
 
 	def diff(self, da):
 		dx = np.reshape(da, (-1,)+self.n_in)
-		return dx, 0, 0
+		return dx, np.array([[0]]), np.array([[0]])
 
 
 class Upsample1D(Layer):
@@ -409,7 +409,7 @@ class Activation(Layer):
 
 	def diff(self, da):
 		dx = da * self.activation.diff(self.x)
-		return dx, 0, 0
+		return dx, np.array([[0]]), np.array([[0]])
 
 
 class Reshape(Layer):
@@ -458,4 +458,4 @@ class Reshape(Layer):
 
 	def diff(self, da):
 		dx = np.reshape(da, (-1,)+self.n_in)
-		return dx, 0, 0
+		return dx, np.array([[0]]), np.array([[0]])
