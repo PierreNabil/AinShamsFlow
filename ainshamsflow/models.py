@@ -14,7 +14,8 @@ from ainshamsflow.layers import Layer
 from ainshamsflow.optimizers import Optimizer
 from ainshamsflow.losses import Loss
 from ainshamsflow.metrics import Metric
-from ainshamsflow.utils.asf_errors import UncompiledModelError, MultipleAccessError, BaseClassError, LayerNotFoundError
+from ainshamsflow.utils.asf_errors import (UncompiledModelError, MultipleAccessError, BaseClassError,
+										   LayerNotFoundError, UnsupportedShapeError)
 
 
 def load_model(filename):
@@ -25,7 +26,7 @@ def load_model(filename):
 	return model
 
 
-class Model:
+class Model(Layer):
 	"""Models Base Class."""
 
 	def __init__(self, input_shape, name):
@@ -37,7 +38,7 @@ class Model:
 			assert ch > 0
 
 		self.name = str(name)
-		self.input_shape = input_shape
+		self.n_in = input_shape
 
 		self.optimizer = None
 		self.loss = None
@@ -66,7 +67,9 @@ class Model:
 		raise BaseClassError
 
 	def predict(self, x):
-		raise BaseClassError
+		"""Predict new data."""
+
+		return self.__call__(x)
 
 	def add_layer(self, layer):
 		raise BaseClassError
@@ -99,6 +102,8 @@ class Sequential(Model):
 	Used to create Models where there is a strict, linear, layer-by-layer
 	structure.
 	"""
+
+	__name__ = 'Sequential Model'
 
 	def __init__(self, layers, input_shape, name=None):
 		"""Define the model layers, input shape and name."""
@@ -139,14 +144,6 @@ class Sequential(Model):
 		metric_values = history.flipped_metrics()
 		return loss_value, metric_values
 
-	def predict(self, x):
-		"""Predict new data."""
-
-		a = x
-		for layer in self.layers:
-			a = layer(a)
-		return a
-
 	def add_layer(self, layer):
 		"""Add a new layer to the network."""
 
@@ -154,7 +151,7 @@ class Sequential(Model):
 		if self.layers:
 			n_out = self.layers[-1].n_out
 		else:
-			n_out = self.input_shape
+			n_out = self.n_in
 		self.layers.append(layer)
 		layer.add_input_shape_to_layer(n_out)
 
@@ -201,8 +198,9 @@ class Sequential(Model):
 		"""Print a summary of the sequential model in a table."""
 
 		spacer = '+' + '-' * 22 + '+' + '-' * 15 + '+' + '-' * 23 + '+' + '-' * 23 + '+' + '-' * 32 + '+'
-		total_params = np.sum([layer.count_params() for layer in self.layers])
-		trainable_params = np.sum([layer.count_params() for layer in self.layers if layer.trainable])
+		total_params = self.count_params()
+		trainable_params = self.count_params(trainable_only=True)
+
 		print()
 		print('Sequential Model: {}'.format(self.name))
 		print(spacer)
@@ -217,3 +215,45 @@ class Sequential(Model):
 		print('| {:117s} |'.format('Non-Trainable Params: {}'.format(total_params - trainable_params)))
 		print(spacer)
 		print()
+
+	# Model as a Layer Functionality:
+
+	def __call__(self, x, training=False):
+		a = x
+		for layer in self.layers:
+			a = layer(a)
+		return a
+
+	def diff(self, da):
+		Da = Dw = Db = []
+
+		for layer in reversed(self.layers):
+			da, dw, db = layer.diff(da)
+			Da.append(da)
+			Dw.append(dw)
+			Db.append(db)
+
+		return Da, Dw, Db
+
+	def add_input_shape_to_layer(self, n_in):
+		if n_in != self.n_in:
+			raise UnsupportedShapeError(n_in, self.n_in)
+		if self.layers:
+			return self.layers[-1].n_out
+
+	def count_params(self, trainable_only=False):
+		if trainable_only:
+			return np.sum([layer.count_params() for layer in self.layers if layer.trainable])
+		else:
+			return np.sum([layer.count_params() for layer in self.layers])
+
+	def get_weights(self):
+		w_and_b = [layer.get_weights() for layer in self.layers]
+		weights = [layer_w_and_b[0] for layer_w_and_b in w_and_b]
+		biases  = [layer_w_and_b[1] for layer_w_and_b in w_and_b]
+		return weights, biases
+
+
+	def set_weights(self, weights, biases):
+		for i, layer in enumerate(self.layers):
+			layer.set_weights(weights[i], biases[i])
