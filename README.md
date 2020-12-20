@@ -23,15 +23,43 @@ This is how the Design Structure should work in our Framework.
 ![Desgin Structure]()
 
 ## Usage:
-You can start by importing the module as follows:
+you start using this project my importing the package as follows:
+
 ```python
 import ainshamsflow as asf
 ```
-Then you have access to all functionality in the modules as follows.
+
+then you can start creating a model:
+
 ```python
-asf.module_name.Class_name
+model = asf.models.Sequential([
+	asf.layers.Dense(30, activation="relu"),
+	asf.layers.Dense(10, activation="relu"),
+	asf.layers.Dense( 1, activation="relu")
+], input_shape=(100,), name='my_model')
+model.print_summary()
 ```
-example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsFlow/blob/master/main.py)
+
+then compile and train the model:
+
+```python
+model.compile(
+	optimizer=asf.optimizers.SGD(),
+	loss=asf.losses.MSE()
+)
+history = model.fit(X, y, epochs=100)
+```
+
+finally you can evaluate, predict and show training statistics:
+
+```python
+model.evaluate(X, y)
+y_pred = model.predict(X_val)
+history.show()
+```
+
+
+A more elaborate example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsFlow/blob/master/main.py)
 
 
 ## Team Members:
@@ -100,22 +128,22 @@ example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsF
         - [ ] Swish
 
     - [ ] Layers
+    
         DNN Layers:
         - [x] Dense
-        - [ ] BatchNorm
-        - [ ] Dropout
+        - [x] BatchNorm
+        - [x] Dropout
+        
         CNN Layers:
         - [ ] Conv (1D and 2D)
         - [ ] Pool (Avg and Max)
         - [ ] GlobalPool
-        - [ ] Flatten
+        - [x] Flatten
         - [ ] Upsample (1D and 2D)
+        
         Other Extra Functionality:
-        - [ ] Lambda
-        - [ ] Activation
-        - [ ] Add
-        - [ ] Concatenate
-        - [ ] Reshape
+        - [x] Activation
+        - [x] Reshape
 
     - [x] Initializers
         - [x] Constant

@@ -1,12 +1,13 @@
-#TODO: Write this Class
+import numpy as np
 
 
 class Dataset:
-	def __init__(self):
-		pass
+	def __init__(self, iterator):
+		#dimentions: (batch, m, n)
+		self.data = np.array(iterator).T
 
 	def __str__(self):
-		pass
+		return str(self.data.T)
 
 	def __bool__(self):
 		pass
@@ -14,11 +15,16 @@ class Dataset:
 	def __len__(self):
 		pass
 
-	def	__iter__(self):
-		pass
+	def __iter__(self):
+		self.index = 0
+		return self
 
 	def __next__(self):
-		pass
+		if self.index > np.data.shape[0]:
+			raise StopIteration
+		batch = np.data[self.index].T
+		self.index += 1
+		return batch
 
 	def apply(self):
 		pass
@@ -39,9 +45,6 @@ class Dataset:
 		pass
 
 	def filter(self):
-		pass
-
-	def from_iterator(self):
 		pass
 
 	def map(self):
@@ -71,8 +74,7 @@ class Dataset:
 
 class ImageDataGenerator(Dataset):
 	def __init__(self):
-		super().__init__()
 		pass
 
-	def flow_from_directory(self):
+	def flow_from_directory(self, directory):
 		pass
