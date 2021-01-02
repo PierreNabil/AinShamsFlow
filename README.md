@@ -126,14 +126,26 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
         - [x] Softsign
         - [x] Swish
 
-    - [ ] Layers
+    - [x] Layers
     
         DNN Layers:
         - [x] Dense
         - [x] BatchNorm
         - [x] Dropout
         
+        CNN Layers 1D: (optional)
+        - [ ] Conv
+        - [ ] Pool (Avg and Max)
+        - [ ] GlobalPool (Avg and Max)
+        - [ ] Upsample
+        
         CNN Layers 2D:
+        - [x] Conv
+        - [x] Pool (Avg and Max)
+        - [x] GlobalPool (Avg and Max)
+        - [x] Upsample
+        
+        CNN Layers 3D: (optional)
         - [ ] Conv
         - [ ] Pool (Avg and Max)
         - [ ] GlobalPool (Avg and Max)
@@ -179,16 +191,18 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
         - [x] L2
         - [ ] L1L2
 
-    - [ ] Optimization Modules for training
+    - [x] Optimization Modules for training
         - [x] SGD
-        - [ ] Momentum
-        - [ ] RMSProp
-        - [ ] Adam
+        - [x] Momentum
+        - [x] AdaGrad
+        - [x] RMSProp
+        - [x] AdaDelta
+        - [x] Adam
 
-    - [ ] A Visualization Modules to track the training and testing processes
+    - [x] A Visualization Modules to track the training and testing processes
         - [x] History
         - [x] Verbosity
-        - [ ] Something like TensorBoard? ...
+        - [ ] Something like TensorBoard? (optional)
 
     - [x] A utils module for reading and saving models
     - [ ] Adding CUDA support
@@ -197,8 +211,8 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
 ### Example Usage:
 - [ ] Download and Split a dataset (MNIST or CIFAR-10) to training, validation and testing
 - [ ] Construct an Architecture [(LeNet or AlexNet)](https://engmrk.com/lenet-5-a-classic-cnn-architecture/) and make sure all of its components are provided in your framework.
-    - [ ] Conv2D Layer
-    - [ ] AvgPool Layer
+    - [x] Conv2D Layer
+    - [x] AvgPool Layer
     - [x] Flatten Layer
     - [x] Dense (Fully Connected) Layer
     - [x] Softmax Activation Function
