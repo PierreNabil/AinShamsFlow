@@ -59,10 +59,11 @@ class Optimizer:
             loss_values = []
             metrics_values = []
             for i in range(num_of_batches):
+                numm = epoch_num*num_of_batches + i
                 batch_x = x[i * batch_size: (i + 1) * batch_size]
                 batch_y = y[i * batch_size: (i + 1) * batch_size]
                 loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
-                                                                   loss, metrics, regularizer, training, i)
+                                                                   loss, metrics, regularizer, training, numm)
                 loss_values.append(loss_value)
                 metrics_values.append(metric_values)
 
@@ -71,7 +72,7 @@ class Optimizer:
                 batch_y = y[-rem_batch_size:]
                 loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
                                                                    loss, metrics, regularizer, training,
-                                                                   i=num_of_batches + 1)
+                                                                   epochs*num_of_batches + 1)
                 loss_values.append(loss_value)
                 metrics_values.append(metric_values)
             loss_values = np.array(loss_values).sum()
@@ -160,9 +161,9 @@ class Momentum(Optimizer):
 
 
 class AdaGrad(Optimizer):
-    """RMS Propagation"""
+    """AdaGrad"""
 
-    __name__ = 'RMSProp'
+    __name__ = 'AdaGrad'
 
     def __init__(self, lr=0.01, beta=0.9):
         super().__init__(lr)
@@ -206,7 +207,7 @@ class AdaDelta(Optimizer):
 
 
 class RMSProp(Optimizer):
-    """RMS Propagation"""
+    """RMSProp"""
 
     __name__ = 'RMSProp'
 
@@ -264,5 +265,4 @@ class Adam(Optimizer):
                 1 - np.power(self.beta2, i + 1))
         self.momentum[layer_id] = (self.beta1 * self.momentum[layer_id] + (1 - self.beta1) * dw) / (
                 1 - np.power(self.beta1, i + 1))
-
         return weights - self.lr * self.momentum[layer_id] / (np.sqrt(self.secMoment[layer_id]) + 1e-8)
