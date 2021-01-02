@@ -27,6 +27,7 @@ class Dataset:
 		return self
 
 	def __next__(self):
+		assert self.data is not None
 		if self.index >= self.data.shape[0]:
 			raise StopIteration
 
@@ -40,9 +41,6 @@ class Dataset:
 			x = self.data[self.index]
 			self.index += 1
 			return x
-
-		else:
-			raise StopIteration
 
 	def apply(self, transformation):
 		pass
@@ -79,6 +77,8 @@ class Dataset:
 	def shuffle(self):
 		""" Arrays shuffled in-place by their first dimension - nothing returned """
 
+		assert self.data is not None
+
 		# Generate random seed
 		seed = np.random.randint(0, 2 ** (32 - 1) - 1)
 
@@ -107,13 +107,14 @@ class Dataset:
 
 			Inputs:
 				- split_percentage: (float) percentage of the testing/validation data points
-				- shuffle: 			(bool)	if true, the data is shuffled before the split
+				- shuffle:			(bool)	if true, the data is shuffled before the split
 
 			Returns (as numpy arrays):
 				- If the dataset was initialized with x only:	returns x_train, x_test
 				- If the dataset was initialized with x and y:	returns x_train, y_train, x_test, y_test
 		"""
 
+		assert self.data is not None
 		holdout = int(split_percentage * self.data.shape[0])
 		if shuffle:
 			self.shuffle()
