@@ -233,7 +233,7 @@ class RMSProp(Optimizer):
         # update step
         self.stMoment[layer_id] = self.beta * self.stMoment[layer_id] + (1 - self.beta) * dw
         self.ndMoment[layer_id] = self.beta * self.ndMoment[layer_id] + (1 - self.beta) * np.square(dw)
-        self.RMS[layer_id] = self.beta * self.RMS[layer_id] + self.lr * dw / np.square(self.ndMoment[layer_id] - np.square(self.stMoment[layer_id]) + 1e-8)
+        self.RMS[layer_id] = self.beta * self.RMS[layer_id] + self.lr * dw / np.sqrt(self.ndMoment[layer_id] - np.square(self.stMoment[layer_id]) + 1e-8)
 
         return weights - self.RMS[layer_id]
 
