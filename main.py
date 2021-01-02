@@ -24,7 +24,7 @@ model = asf.models.Sequential([
 model.print_summary()
 
 model.compile(
-	asf.optimizers.Momentum(lr=0.0000001),
+	asf.optimizers.RMSProp(lr=0.001),
 	asf.losses.MSE()
 )
 
