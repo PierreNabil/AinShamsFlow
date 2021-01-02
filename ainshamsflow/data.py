@@ -27,11 +27,20 @@ class Dataset:
 		return self
 
 	def __next__(self):
-		if self.index < self.data.shape[0]:
+		if self.index >= self.data.shape[0]:
+			raise StopIteration
+
+		if self.data is not None and self.target is not None:
 			x = self.data[self.index]
 			y = self.target[self.index]
 			self.index += 1
-			return f"X: {x}\tY: {y}"
+			return x, y
+
+		elif self.data is not None:
+			x = self.data[self.index]
+			self.index += 1
+			return x
+
 		else:
 			raise StopIteration
 
@@ -45,7 +54,8 @@ class Dataset:
 		pass
 
 	def cardinality(self):
-		assert(self.data is not None)
+		""" Returns the number of data points in the dataset """
+		assert self.data is not None
 		return self.data.shape[0]
 
 	def concatenate(self):
@@ -60,26 +70,21 @@ class Dataset:
 	def map(self):
 		pass
 
-	def range(self, stop, start=None, step=None):
-		if start and step:
-			self.__init__(x=[i for i in range(start, stop, step)])
-		elif start:
-			self.__init__(x=[i for i in range(start, stop)])
-		else:
-			self.__init__(x=[i for i in range(stop)])
+	def range(self, *args):
+		self.data = np.arange(*args)
 
 	def reduce(self):
 		pass
 
 	def shuffle(self):
-		""" Arrays shuffled in-place by their first dimension - nothing returned. """
+		""" Arrays shuffled in-place by their first dimension - nothing returned """
 
 		# Generate random seed
 		seed = np.random.randint(0, 2 ** (32 - 1) - 1)
 
 		if self.target is not None:
-			# Ensure self.data and self.target have the same length along their first dimension.
-			assert(self.data.shape[0] == self.target.shape[0])
+			# Ensure self.data and self.target have the same length along their first dimension
+			assert self.data.shape[0] == self.target.shape[0]
 
 			# Shuffle both arrays in-place using the same seed
 			for array in [self.data, self.target]:
@@ -88,10 +93,8 @@ class Dataset:
 				r_state.shuffle(array)
 
 		else:
-			# Generate random state object
+			# Generate random state object and only shuffle the data array
 			r_state = np.random.RandomState(seed)
-
-			# Shuffle the data array only
 			r_state.shuffle(self.data)
 
 	def skip(self):
@@ -100,15 +103,15 @@ class Dataset:
 	def split(self, split_percentage, shuffle=False):
 
 		"""
-			Splits the dataset into 2 batches (training and testing/validation)
+		Splits the dataset into 2 batches (training and testing/validation)
 
-				Inputs:
-					- split_percentage: (float) percentage of the testing/validation data points
-					- shuffle: 			(bool)	if true, the data is shuffle before the split
+			Inputs:
+				- split_percentage: (float) percentage of the testing/validation data points
+				- shuffle: 			(bool)	if true, the data is shuffled before the split
 
-				Returns:
-					- If the dataset was initialized with x (self.data) only: returns x_train, x_test
-					- If the dataset was initialized with x and y:			  returns x_train, y_train, x_test, y_test
+			Returns (as numpy arrays):
+				- If the dataset was initialized with x only:	returns x_train, x_test
+				- If the dataset was initialized with x and y:	returns x_train, y_train, x_test, y_test
 		"""
 
 		holdout = int(split_percentage * self.data.shape[0])
@@ -142,30 +145,38 @@ class ImageDataGenerator(Dataset):
 		pass
 
 
-x = np.random.randint(0, 10, (10, 5))
-y = np.random.randint(0, 10, (10, 1))
+if __name__ == '__main__':
 
-ds = Dataset(x=x, y=y)
+	# Create a dataset object
+	ds = Dataset()
 
+	# Range
+	ds.range(5, 10, 2)
+	for x in ds:
+		print(x)
 
-for data_point in ds:
-	print(data_point)
-"""
-X: [2 1 7 9 7]	Y: [2]
-X: [9 0 2 9 0]	Y: [4]
-X: [4 4 0 9 0]	Y: [6]
-X: [8 6 6 8 3]	Y: [9]
-X: [8 8 8 2 9]	Y: [3]
-X: [5 8 1 5 5]	Y: [6]
-X: [4 4 6 8 1]	Y: [5]
-X: [1 9 8 0 3]	Y: [8]
-X: [8 6 7 2 8]	Y: [8]
-X: [1 8 9 7 2]	Y: [6]
-"""
+	# Cardinality
+	print(ds.cardinality())
 
-# ds.shuffle()
-"""
-x_train, y_train, x_test, y_test = ds.split(0.3, shuffle=True)
-print(x_test)
-print(y_test)
-"""
+	# Initialize with lists
+	x = [[10, 10, 10], [20, 20, 20], [30, 30, 30], [40, 40, 40]]
+	y = [1, 2, 3, 4]
+
+	ds = Dataset(x, y)
+	for x, y in ds:
+		print(x, y)
+
+	# Shuffle
+	ds.shuffle()
+	for x, y in ds:
+		print(x, y)
+
+	# Split
+	x = np.random.randint(0, 9, (10, 3))
+	y = np.random.randint(0, 2, (10, 1))
+	ds = Dataset(x, y)
+	x_train, y_train, x_test, y_test = ds.split(split_percentage=0.3, shuffle=False)
+	print(x_train.shape)
+	print(y_train.shape)
+	print(x_test.shape)
+	print(y_test.shape)
