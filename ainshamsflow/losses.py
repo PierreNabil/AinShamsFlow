@@ -14,7 +14,7 @@ from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
 def get(loss_name):
 	"""Get any Loss in this Module by name."""
 
-	losses = [MSE, MAE, MAPE]
+	losses = [MSE, MAE]
 	for loss in losses:
 		if loss.__name__.lower() == loss_name.lower() :
 			return loss()

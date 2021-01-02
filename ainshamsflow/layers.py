@@ -15,8 +15,9 @@ def get(layer_name):
 	"""Get any Layer in this Module by name."""
 
 	layers = [Dense, BatchNorm, Dropout,
-			  Conv1D, Conv2D, AvgPool, MaxPool, GlobalAvgPool, GlobalMaxPool, Flatten, Upsample1D, Upsample2D,
-			  Activation, Reshape]
+			  # Conv1D, Pool1D, GlobalPool1D, Upsample1D,
+			  Conv2D, Pool2D, GlobalPool2D,  Upsample2D,
+			  Flatten, Activation, Reshape]
 	for layer in layers:
 		if layer.__name__.lower() == layer_name.lower():
 			return layer
@@ -93,6 +94,8 @@ class Dense(Layer):
 		if isinstance(activation, str):
 			activation = activations.get(activation)
 		assert isinstance(activation, activations.Activation)
+		assert isinstance(weights_init, initializers.Initializer)
+		assert isinstance(biases_init, initializers.Initializer)
 
 		super().__init__(name, trainable)
 		self.n_in  = (1,)
@@ -128,8 +131,6 @@ class Dense(Layer):
 		return self.activation(self.z)
 
 	def diff(self, da):
-		assert self.x is not None
-
 		dz = da * self.activation.diff(self.z)
 		m = self.x.shape[0]
 
@@ -137,8 +138,6 @@ class Dense(Layer):
 		db = np.sum(dz, axis=0, keepdims=True) / m
 		dx = np.dot(dz, self.weights.T,)
 
-		self.x = None
-		self.z = None
 		return dx, dw, db
 
 	def count_params(self):
@@ -287,42 +286,281 @@ class Conv1D(Layer):
 	pass
 
 
+class Upsample1D(Layer):
+	"""1-Dimensional Up Sampling Layer."""
+
+	__name__ = 'Upsample1D'
+	pass
+
+
 class Conv2D(Layer):
 	"""2-Dimensional Convolution Layer."""
 
 	__name__ = 'Conv2D'
-	#TODO: Write Conv2D Layer
-	pass
+
+	def __init__(self, filters, kernel_size, strides=1, padding='valid',
+				 kernel_init=initializers.Constant(1), biases_init=initializers.Constant(0),
+				 activation=activations.Linear(), name=None, trainable=True):
+		assert isinstance(filters, int)
+		if isinstance(kernel_size, int):
+			kernel_size = (kernel_size, kernel_size)
+		assert isinstance(kernel_size, tuple)
+		assert len(kernel_size) == 2
+		for ch in kernel_size:
+			assert ch > 0
+			assert ch % 2 == 1
+		if isinstance(strides, int):
+			strides = (strides, strides)
+		assert isinstance(strides, tuple)
+		assert len(strides) == 2
+		for ch in strides:
+			assert ch > 0
+		padding = padding.lower()
+		assert padding == 'valid' or padding == 'same'
+		assert isinstance(kernel_init, initializers.Initializer)
+		assert isinstance(biases_init, initializers.Initializer)
+		if isinstance(activation, str):
+			activation = activations.get(activation)
+		assert isinstance(activation, activations.Activation)
+
+		super().__init__(name, trainable)
+		self.n_in = (None, None, 1)
+		self.n_out = (None, None, filters)
+		self.kernel_init = kernel_init
+		self.biases_init = biases_init
+		self.activation = activation
+		self.strides = strides
+		self.same_padding = padding == 'same'
+
+		self.input_shape = None
+		self.output_shape = None
+
+		self.kernel = kernel_size
+		self.biases = None
+
+	def add_input_shape_to_layers(self, n_in):
+		assert len(n_in) == 3
+		assert n_in[-1] > 0
+
+		self.n_in = n_in
+		self.kernel = self.kernel_init((self.n_out[-1], *self.kernel, self.n_in[-1]))
+		self.biases = self.biases_init((self.n_out[-1], 1, 1, 1))
+
+		self.input_shape = '(None,None,None,{:4d})'.format(self.n_in[-1])
+		self.output_shape = '(None,None,None,{:4d})'.format(self.n_out[-1])
+
+		return self.n_out
+
+	def __call__(self, x, training=False):
+		n_c_out, f_h, f_w, n_c_in = self.kernel.shape
+		m, H_prev, W_prev, n_c_in = x.shape
+		assert n_c_in == self.n_in[-1]
+		self.x = x
+
+		p_h, p_w = 0, 0
+		s_h, s_w = self.strides
+		if self.same_padding:
+			p_h, p_w = (f_h - 1)//2, (f_w - 1)//2
+			x = np.pad(x, ((0, 0), (p_h, p_h), (p_w, p_w), (0, 0)), mode='constant', constant_values=(0, 0))
 
 
-class AvgPool(Layer):
-	"""Average Pooling Layer."""
+		H = int((H_prev - f_h + 2 * p_h) / s_h) + 1
+		W = int((W_prev - f_w + 2 * p_w) / s_w) + 1
 
-	__name__ = 'AvgPool'
-	#TODO: Write AvgPool Layer
-	pass
+		z = np.zeros((m, H, W, n_c_out))
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for w in range(W):
+				horiz_start = s_w * w
+				horiz_end = s_w * w + f_w
+				for c in range(n_c_out):
+					z[:, h, w, c] = (
+						np.sum(x[:, vert_start:vert_end, horiz_start:horiz_end, :] * self.kernel[c] + self.biases[c], axis=(1, 2, 3))
+					)
+		self.z = z
+		return self.activation(z)
+
+	def diff(self, da):
+		n_c_out, f_h, f_w, n_c_in = self.kernel.shape
+		m, H, W, n_c_out = da.shape
+		assert n_c_out == self.n_out[-1]
+
+		s_h, s_w = self.strides
+		p_h, p_w = 0, 0
+		if self.same_padding:
+			p_h, p_w = (f_h - 1)//2, (f_w - 1)//2
+
+		dz = da * self.activation.diff(self.z)
+
+		x_pad = np.pad(self.x, ((0, 0), (p_h, p_h), (p_w, p_w), (0, 0)), mode='constant', constant_values=(0, 0))
+		dx_pad = np.pad(np.zeros(self.x.shape), ((0, 0), (p_h, p_h), (p_w, p_w), (0, 0)),
+						mode='constant', constant_values=(0, 0))
+		dw = np.zeros(self.kernel.shape)
+		db = np.zeros(self.biases.shape)
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for w in range(W):
+				horiz_start = s_w * w
+				horiz_end = s_w * w + f_w
+				for c in range(n_c_out):
+					dx_pad[:, vert_start:vert_end, horiz_start:horiz_end, :] += (
+							self.kernel[c][None, ...] * dz[:, h, w, c][:, None, None, None]
+					)
+					dw[c] += np.sum(
+						x_pad[:, vert_start:vert_end, horiz_start:horiz_end, :] * dz[:, h, w, c][:, None, None, None],
+						axis=0
+					)
+					db[c] += np.sum(dz[:, h, w, c], axis=0)
+
+		dx = dx_pad[:, p_h:-p_h, p_w:-p_w, :]
+		return dx, dw, db
+
+	def count_params(self):
+		return np.prod(self.kernel.shape) + self.n_out[-1]
+
+	def get_weights(self):
+		return self.kernel, self.biases
+
+	def set_weights(self, weights, biases):
+		assert weights.shape == self.kernel.shape
+		assert biases.shape == self.biases.shape
+
+		self.kernel = np.array(weights)
+		self.biases = np.array(biases)
 
 
-class MaxPool(Layer):
-	"""Maximum Pooling Layer."""
+class Pool2D(Layer):
+	"""2-Dimensional Pooling Layer."""
 
-	__name__ = 'MaxPool'
-	#TODO: Write MaxPool Layer
-	pass
+	__name__ = 'Pool2D'
+
+	def __init__(self, pool_size=2, strides=None, padding='valid', mode='max', name=None, trainable=True):
+		if isinstance(pool_size, int):
+			pool_size = (pool_size, pool_size)
+		assert isinstance(pool_size, tuple)
+		for ch in pool_size:
+			assert ch > 0
+		if strides is None:
+			strides = pool_size
+		elif isinstance(strides, int):
+			strides = (strides, strides)
+		assert isinstance(strides, tuple)
+		for ch in strides:
+			assert ch > 0
+		padding = padding.lower()
+		assert padding == 'valid' or padding == 'same'
+		assert mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'
+		if mode == 'max':
+			self.mode = 'max'
+		else:
+			self.mode = 'avg'
+
+		super().__init__(name, trainable)
+		self.pool_size = pool_size
+		self.strides = strides
+		self.same_padding = padding == 'same'
+
+		self.n_in = None
+		self.n_out = None
+		self.input_shape = None
+		self.output_shape = None
+
+		self.x = None
+		self.z = None
+
+	def add_input_shape_to_layers(self, n_in):
+		assert len(n_in) == 3
+		assert n_in[-1] > 0
+
+		self.n_in = self.n_out = (None, None, n_in[-1])
+		self.input_shape = self.output_shape = '(None,None,None,{:4d})'.format(n_in[-1])
+
+		return n_in
+
+	def __call__(self, x, training=False):
+		f_h, f_w = self.pool_size
+		m, H_prev, W_prev, n_c = x.shape
+		assert n_c == self.n_in[-1]
+		self.x = x
+
+		p_h, p_w = 0, 0
+		s_h, s_w = self.strides
+		if self.same_padding :
+			p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+			x = np.pad(x, ((0, 0), (p_h, p_h), (p_w, p_w), (0, 0)), mode='constant', constant_values=(0, 0))
+
+		H = int((H_prev - f_h + 2 * p_h) / s_h) + 1
+		W = int((W_prev - f_w + 2 * p_w) / s_w) + 1
+
+		z = np.zeros((m, H, W, n_c))
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for w in range(W):
+				horiz_start = s_w * w
+				horiz_end = s_w * w + f_w
+				for c in range(n_c):
+					if self.mode == 'max':
+						func = np.max
+					else:
+						func = np.mean
+					z[:, h, w, c] = func(x[:, vert_start:vert_end, horiz_start:horiz_end, c], axis=(1, 2))
+
+		self.z = z
+		return z
+
+	def diff(self, da):
+		f_h, f_w = self.pool_size
+		m, H, W, n_c_out = da.shape
+		assert n_c_out == self.n_out[-1]
+
+		s_h, s_w = self.strides
+
+		dx = np.zeros(self.x.shape)
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for w in range(W):
+				horiz_start = s_w * w
+				horiz_end = s_w * w + f_w
+				for c in range(n_c_out):
+					if self.mode == 'max':
+						x_slice = self.x[:, vert_start:vert_end, horiz_start:horiz_end, c]
+						mask = np.equal(x_slice, np.max(x_slice, axis=(1, 2), keepdims=True))
+						dx[:, vert_start:vert_end, horiz_start:horiz_end, c] += (
+								mask * da[:, vert_start:vert_end, horiz_start:horiz_end, c]
+						)
+
+					else:
+						da_mean = np.mean(da[:, vert_start:vert_end, horiz_start:horiz_end, c], axis=(1,2))
+						dx[:, vert_start :vert_end, horiz_start :horiz_end, c] += (
+							da_mean[:, None, None] / np.prod(self.pool_size) * np.ones(self.pool_size)[None, ...]
+						)
+
+		return dx, np.array([[0]]), np.array([[0]])
 
 
-class GlobalAvgPool(Layer):
+class GlobalPool2D(Layer):
 	"""Global Average Pooling Layer."""
 
-	__name__ = 'GlobalAvgPool'
+	__name__ = 'GlobalAvgPool2D'
 	pass
 
 
-class GlobalMaxPool(Layer):
-	"""Global Maximum Pooling Layer."""
+class Upsample2D(Layer):
+	"""2-Dimensional Up Sampling Layer."""
 
-	__name__ = 'GlobalMaxPool'
+	__name__ = 'Upsample2D'
 	pass
+
+
+# Other Extra Functionality
 
 
 class Flatten(Layer):
@@ -356,23 +594,6 @@ class Flatten(Layer):
 	def diff(self, da):
 		dx = np.reshape(da, (-1,)+self.n_in)
 		return dx, np.array([[0]]), np.array([[0]])
-
-
-class Upsample1D(Layer):
-	"""1-Dimensional Up Sampling Layer."""
-
-	__name__ = 'Upsample1D'
-	pass
-
-
-class Upsample2D(Layer):
-	"""2-Dimensional Up Sampling Layer."""
-
-	__name__ = 'Upsample2D'
-	pass
-
-
-# Other Extra Functionality
 
 
 class Activation(Layer):

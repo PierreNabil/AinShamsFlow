@@ -123,7 +123,9 @@ class Sequential(Model):
 			input_shape = layer.add_input_shape_to_layers(input_shape)
 
 		self.n_out = self.layers[-1].n_out
-		self.output_shape = '(None' + (',{:4}'*len(self.n_out)).format(*self.n_out) + ')'
+		print(self.n_out)
+		n_out = [str(ch) for ch in self.n_out]
+		self.output_shape = '(None' + (',{:4}'*len(n_out)).format(*n_out) + ')'
 
 	def fit(self, x, y, epochs, batch_size=None, verbose=True):
 		"""Fit the model to the training data."""
@@ -227,7 +229,7 @@ class Sequential(Model):
 	def __call__(self, x, training=False):
 		a = x
 		for layer in self.layers:
-			a = layer(a)
+			a = layer(a, training)
 		return a
 
 	def diff(self, da):

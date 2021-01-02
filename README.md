@@ -65,7 +65,7 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
 ## Team Members:
 * [Pierre Nabil](https://github.com/PierreNabil)
 
-* [Ahmed Taha]()
+* [Ahmed Taha](https://github.com/atf01)
 
 * [Girgis Micheal](https://github.com/girgismicheal)
 
@@ -111,21 +111,20 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
         - [ ] flow_from_directory()
 
 - [ ] A NN Module to design different architectures.
-    - [ ] Activation Functions
+    - [x] Activation Functions
         - [x] Linear
-        - [ ] Sign
         - [x] Sigmoid
-        - [ ] Hard Sigmoid
+        - [x] Hard Sigmoid
         - [x] Tanh
-        - [ ] Hard Tanh
+        - [x] Hard Tanh
         - [x] ReLU
         - [x] LeakyReLU
-        - [ ] ELU
-        - [ ] SELU
-        - [ ] Softmax
-        - [ ] Softplus
-        - [ ] Siftsign
-        - [ ] Swish
+        - [x] ELU
+        - [x] SELU
+        - [x] Softmax
+        - [x] Softplus
+        - [x] Softsign
+        - [x] Swish
 
     - [ ] Layers
     
@@ -134,14 +133,14 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
         - [x] BatchNorm
         - [x] Dropout
         
-        CNN Layers:
-        - [ ] Conv (1D and 2D)
+        CNN Layers 2D:
+        - [ ] Conv
         - [ ] Pool (Avg and Max)
-        - [ ] GlobalPool
-        - [x] Flatten
-        - [ ] Upsample (1D and 2D)
+        - [ ] GlobalPool (Avg and Max)
+        - [ ] Upsample
         
         Other Extra Functionality:
+        - [x] Flatten
         - [x] Activation
         - [x] Reshape
 
@@ -153,22 +152,27 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
         
     - [ ] Losses
         - [x] MSE  (Mean Squared Error)
-        - [ ] RMSE (Root Mean Squared Error)
         - [x] MAE  (Mean Absolute Error)
         - [x] MAPE (Mean Absolute Percentage Error)
         - [ ] BinaryCrossentropy
         - [ ] CategoricalCrossentropy
         - [ ] SparseCategoricalCrossentropy
+        - [ ] HuberLoss
+        - [ ] LogLossLinearActivation
+        - [ ] LogLossSigmoidActivation
+        - [ ] MultiClassification
+        - [ ] PreceptronCriterion
+        - [ ] SVMHinge
 
     - [ ] Evaluation Metrics
         - [x] Accuracy
-        - [ ] TP (True Positives)
-        - [ ] TN (True Negatives)
-        - [ ] FP (False Positives)
-        - [ ] FN (False Negatives)
-        - [ ] Precision
-        - [ ] Recall
-        - [ ] F1Score
+        - [x] TP (True Positives)
+        - [x] TN (True Negatives)
+        - [x] FP (False Positives)
+        - [x] FN (False Negatives)
+        - [x] Precision
+        - [x] Recall
+        - [x] F1Score
         
     - [ ] Regularizers
         - [x] L1
@@ -195,8 +199,8 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
 - [ ] Construct an Architecture [(LeNet or AlexNet)](https://engmrk.com/lenet-5-a-classic-cnn-architecture/) and make sure all of its components are provided in your framework.
     - [ ] Conv2D Layer
     - [ ] AvgPool Layer
-    - [ ] Flatten Layer
+    - [x] Flatten Layer
     - [x] Dense (Fully Connected) Layer
-    - [ ] Softmax Activation Function
+    - [x] Softmax Activation Function
 - [ ] Train and test the model until a good accuracy is reached (Evaluation Metrics will need to be implemented in the framework also)
 - [x] Save the model into a compressed format

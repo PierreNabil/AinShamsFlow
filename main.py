@@ -3,42 +3,40 @@
 import ainshamsflow as asf
 import numpy as np
 
-x = np.arange(10).reshape((-1, 1))
-y = 2*x+1
+x = np.random.randint(-5, 5, (10, 3))
+y = np.sum(np.square(x) * np.array([[2, 3, 5]]), axis=1, keepdims=True)
+print(x[0], y[0])
+print(x.shape, y.shape)
 
-print(y)
-
-model_layer = asf.models.Sequential([
-	asf.layers.Dense(5),
-	asf.layers.Dense(3),
-	asf.layers.Activation('leakyrelu')
-], input_shape=(8,), name='model_layer')
 
 model = asf.models.Sequential([
-	asf.layers.Dense(8),
-	asf.layers.Reshape((2, 2, -1)),
-	asf.layers.BatchNorm(),
-	asf.layers.Dropout(0.9),
-	asf.layers.Flatten(),
-	model_layer,
-	asf.layers.Dense(1)
-], input_shape=(1,), name='my_model')
-
-model.compile(
-	optimizer=asf.optimizers.SGD(lr=0.0000001),
-	loss=asf.losses.MSE(),
-	metrics=[asf.losses.MAE()]
-)
+	asf.layers.Dense(5, name='fc_1'),
+	asf.layers.BatchNorm(name='bn_1'),
+	asf.layers.Activation('relu'),
+	asf.layers.Dense(3, name='fc_2'),
+	asf.layers.BatchNorm(name='bn_2'),
+	asf.layers.Activation('relu'),
+	asf.layers.Dense(1, name='fc_3'),
+	asf.layers.BatchNorm(name='bn_3'),
+	asf.layers.Activation('linear')
+], input_shape=(3,), name='my_model')
 
 model.print_summary()
 
-history = model.fit(x, y, 100, verbose=False)
+model.compile(
+	asf.optimizers.Momentum(lr=0.0000001),
+	asf.losses.MSE()
+)
+
+history = model.fit(x, y, 10)
+model.evaluate(x, y)
+
 history.show()
-print(model.predict(x))
-model.evaluate(x, y, 3)
 
-model.save_model('.\\test_model')
 
-model2 = asf.models.load_model('.\\test_model\\my_model')
+x_test = np.array([[1, 1, 1]])
+y_test = np.array([[10]])
 
-model2.print_summary()
+print(model.predict(x_test))
+
+model.evaluate(x_test, y_test)

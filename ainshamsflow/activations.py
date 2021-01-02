@@ -13,7 +13,8 @@ from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
 def get(act_name):
 	"""Get any Activation Function in this Module by name."""
 
-	acts = [Linear, Sigmoid, Tanh, ReLU, LeakyReLU]
+	acts = [Linear, Sigmoid, Tanh, ReLU, LeakyReLU, Softplus, ELU,
+			SELU, Softsign, Swish, Softmax, Hardtanh, Hardsigmoid]
 	for act in acts:
 		if act.__name__.lower() == act_name.lower():
 			return act()
@@ -140,7 +141,7 @@ class Softsign(Activation):
 		return 1 / np.power(Softsign_down  , 2)
 
 class Swish(Activation):
-	def __call__(self,z):
+	def __call__(self, z):
 		return z * Sigmoid(z)
 	
 	def diff(self,z):
