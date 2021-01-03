@@ -16,11 +16,11 @@ However, we only implement everything from scratch using only simple libraries s
 ## Project Structure:
 The Design of all parts can be seen in the following UML Diagram.
 
-![UML Diagram of the Project]()
+![UML Diagram of the Project](/images/UML%20Class%20Diagram.png)
 
 This is how the Design Structure should work in our Framework.
 
-![Desgin Structure]()
+![Desgin Structure](/images/Design%20Structure.png)
 
 ## Usage:
 you start using this project my importing the package as follows:

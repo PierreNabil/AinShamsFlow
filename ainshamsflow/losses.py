@@ -7,7 +7,7 @@ Mean Square Error (MSE) or Binary Cross Entropy.
 import numpy as np
 
 from ainshamsflow.metrics import Metric
-from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
+from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
 #TODO: Add More Losses
 
 
@@ -48,13 +48,13 @@ class MSE(Loss):
 
 	def __call__(self, y_pred, y_true):
 		if y_true.shape != y_pred.shape:
-			raise UnsupportedShapeError(y_pred, y_true)
+			raise UnsupportedShapeError(y_pred.shape, y_true.shape)
 		m = np.sum(y_true.shape[0])
 		return np.sum(np.square(y_pred - y_true)) / (2*m)
 
 	def diff(self, y_pred, y_true):
 		if y_true.shape != y_pred.shape:
-			raise UnsupportedShapeError(y_pred, y_true)
+			raise UnsupportedShapeError(y_pred.shape, y_true.shape)
 		m = np.sum(y_true.shape[0])
 		return (y_pred - y_true) / m
 
@@ -65,12 +65,12 @@ class MAE(Loss):
 
 	def __call__(self, y_pred, y_true):
 		if y_true.shape != y_pred.shape:
-			raise UnsupportedShapeError(y_pred, y_true)
+			raise UnsupportedShapeError(y_pred.shape, y_true.shape)
 		m = np.sum(y_true.shape[0])
 		return np.sum(np.abs(y_pred - y_true)) / m
 
 	def diff(self, y_pred, y_true):
 		if y_true.shape != y_pred.shape:
-			raise UnsupportedShapeError(y_pred, y_true)
+			raise UnsupportedShapeError(y_pred.shape, y_true.shape)
 		m = np.sum(y_true.shape[0])
 		return np.where(y_pred > y_true, 1, -1) / m
