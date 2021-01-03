@@ -10,16 +10,15 @@ from ainshamsflow import initializers
 from ainshamsflow.utils.asf_errors import (BaseClassError, NameNotFoundError, UnsupportedShapeError,
 										   InvalidShapeError, WrongObjectError, InvalidPreceedingLayerError,
 										   InvalidRangeError)
-#TODO: Add More Layers
 
 
 def get(layer_name):
 	"""Get any Layer in this Module by name."""
 
 	layers = [Dense, BatchNorm, Dropout,
-			  # Conv1D, Pool1D, GlobalPool1D, Upsample1D,
+			  Conv1D, Pool1D, GlobalPool1D, Upsample1D,
 			  Conv2D, Pool2D, GlobalPool2D,  Upsample2D,
-			  # Conv3D, Pool3D, GlobalPool3D, Upsample3D,
+			  Conv3D, Pool3D, GlobalPool3D, Upsample3D,
 			  Flatten, Activation, Reshape]
 	for layer in layers:
 		if layer.__name__.lower() == layer_name.lower():
@@ -295,7 +294,7 @@ class Dropout(Layer):
 		return n
 
 	def __call__(self, x, training=False):
-		if x.shape[1 :] != self.n_in:
+		if x.shape[1:] != self.n_in:
 			raise UnsupportedShapeError(x.shape, self.n_in)
 
 		self.filter = np.random.rand(*x.shape) < self.rate if training else 1
@@ -308,19 +307,400 @@ class Dropout(Layer):
 
 # CNN Layers:
 
-
 class Conv1D(Layer):
 	"""1-Dimensional Convolution Layer."""
 
 	__name__ = 'Conv1D'
-	pass
+
+	def __init__(self, filters, kernel_size, strides=1, padding='valid',
+				 kernel_init=initializers.Normal(), biases_init=initializers.Constant(0),
+				 activation=activations.Linear(), name=None, trainable=True):
+		if not isinstance(filters, int):
+			raise WrongObjectError(filters, 0)
+		if isinstance(kernel_size, int):
+			kernel_size = (kernel_size,)
+		if not isinstance(kernel_size, tuple):
+			raise WrongObjectError(kernel_size, tuple())
+		if len(kernel_size) != 1:
+			raise InvalidShapeError(kernel_size)
+		for ch in kernel_size:
+			if ch <= 0 or ch % 2 != 1:
+				raise InvalidRangeError(kernel_size)
+		if isinstance(strides, int):
+			strides = (strides,)
+		if not isinstance(strides, tuple):
+			raise WrongObjectError(strides, tuple())
+		if len(strides) != 1:
+			raise InvalidShapeError(strides)
+		for ch in strides:
+			if ch <= 0:
+				raise InvalidShapeError(strides)
+		padding = padding.lower()
+		if not (padding == 'valid' or padding == 'same'):
+			raise InvalidRangeError(padding, 'valid', 'same')
+		if not isinstance(kernel_init, initializers.Initializer):
+			raise WrongObjectError(kernel_init, initializers.Initializer())
+		if not isinstance(biases_init, initializers.Initializer):
+			raise WrongObjectError(biases_init, initializers.Initializer())
+		if isinstance(activation, str):
+			activation = activations.get(activation)
+		if not isinstance(activation, activations.Activation):
+			raise WrongObjectError(activation, activations.Activation())
+
+		super().__init__(name, trainable)
+		self.n_in = (None, 1)
+		self.n_out = (None, filters)
+		self.kernel_init = kernel_init
+		self.biases_init = biases_init
+		self.activation = activation
+		self.strides = strides
+		self.same_padding = (padding == 'same')
+
+		self.input_shape = None
+		self.output_shape = None
+
+		self.kernel = kernel_size
+		self.biases = None
+
+	def add_input_shape_to_layers(self, n_in):
+		if len(n_in) != 2:
+			raise InvalidPreceedingLayerError(self)
+
+		p_h = 0
+		if self.same_padding:
+			p_h = (self.kernel[0] - 1) // 2
+
+		h_size = (n_in[0] - self.kernel[0] + 2 * p_h) // self.strides[0] + 1
+
+		self.n_in = n_in
+		self.n_out = (h_size, self.n_out[-1])
+
+		self.kernel = self.kernel_init((self.n_out[-1], *self.kernel, self.n_in[-1]))
+		self.biases = self.biases_init((self.n_out[-1], 1, 1))
+
+		self.input_shape = '(None,{:4d},{:4d})'.format(*self.n_in)
+		self.output_shape = '(None,{:4d},{:4d})'.format(*self.n_out)
+
+		return self.n_out
+
+	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
+		n_c_out, f_h, n_c_in = self.kernel.shape
+		m, H_prev, n_c_in = x.shape
+		self.x = x
+
+		p_h = 0
+		s_h = self.strides[0]
+		if self.same_padding:
+			p_h = (f_h - 1)//2
+			x = np.pad(x, ((0, 0), (p_h, p_h), (0, 0)), mode='constant', constant_values=(0, 0))
+
+
+		H = int((H_prev - f_h + 2 * p_h) / s_h) + 1
+
+		z = np.zeros((m, H, n_c_out))
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for c in range(n_c_out):
+				z[:, h, c] = (
+					np.sum(x[:, vert_start:vert_end, :] * self.kernel[c] + self.biases[c], axis=(1, 2))
+				)
+		self.z = z
+		return self.activation(z)
+
+	def diff(self, da):
+		n_c_out, f_h, n_c_in = self.kernel.shape
+		m, H, n_c_out = da.shape
+
+		s_h = self.strides[0]
+		p_h = 0
+		if self.same_padding:
+			p_h = (f_h - 1)//2
+
+		dz = da * self.activation.diff(self.z)
+
+		x_pad = np.pad(self.x, ((0, 0), (p_h, p_h), (0, 0)), mode='constant', constant_values=(0, 0))
+		dx_pad = np.pad(np.zeros(self.x.shape), ((0, 0), (p_h, p_h), (0, 0)),
+						mode='constant', constant_values=(0, 0))
+		dw = np.zeros(self.kernel.shape)
+		db = np.zeros(self.biases.shape)
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for c in range(n_c_out):
+				dx_pad[:, vert_start:vert_end, :] += (
+						self.kernel[c][None, ...] * dz[:, h, c][:, None, None]
+				)
+				dw[c] += np.sum(
+					x_pad[:, vert_start:vert_end, :] * dz[:, h, c][:, None, None],
+					axis=0
+				)
+				db[c] += np.sum(dz[:, h, c], axis=0)
+
+		dx = dx_pad[:, p_h:-p_h, :]
+		return dx, dw, db
+
+	def count_params(self):
+		return np.prod(self.kernel.shape) + self.n_out[-1]
+
+	def get_weights(self):
+		return self.kernel, self.biases
+
+	def set_weights(self, weights, biases):
+		if weights.shape != self.kernel.shape:
+			raise UnsupportedShapeError(weights.shape, self.kernel.shape)
+		if biases.shape != self.biases.shape:
+			raise UnsupportedShapeError(biases.shape, self.biases.shape)
+
+		self.kernel = np.array(weights)
+		self.biases = np.array(biases)
 
 
 class Pool1D(Layer):
-	"""1-Dimensional Up Pooling Layer."""
+	"""1-Dimensional Pooling Layer."""
 
 	__name__ = 'Pool1D'
-	pass
+
+	def __init__(self, pool_size=2, strides=None, padding='valid', mode='max', name=None, trainable=True):
+		if isinstance(pool_size, int):
+			pool_size = (pool_size,)
+		if not isinstance(pool_size, tuple):
+			raise WrongObjectError(pool_size, tuple())
+		if len(pool_size) != 1:
+			raise InvalidShapeError(pool_size)
+		for ch in pool_size:
+			if ch <= 0:
+				raise InvalidShapeError(pool_size)
+		if strides is None:
+			strides = pool_size
+		elif isinstance(strides, int):
+			strides = (strides,)
+		if not isinstance(strides, tuple):
+			raise WrongObjectError(strides, tuple())
+		if len(strides) != 1:
+			raise InvalidShapeError(strides)
+		for ch in strides:
+			if ch <= 0:
+				raise InvalidShapeError(strides)
+		padding = padding.lower()
+		if not (padding == 'valid' or padding == 'same'):
+			raise InvalidRangeError(padding, 'valid', 'same')
+		mode = mode.lower()
+		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'):
+			raise InvalidRangeError(mode, 'max', 'avg')
+		if mode == 'max':
+			self.mode = 'max'
+		else:
+			self.mode = 'avg'
+
+		super().__init__(name, trainable)
+		self.pool_size = pool_size
+		self.strides = strides
+		self.same_padding = padding == 'same'
+
+		self.n_in = None
+		self.n_out = None
+		self.input_shape = None
+		self.output_shape = None
+
+		self.x = None
+		self.z = None
+
+	def add_input_shape_to_layers(self, n_in):
+		if len(n_in) != 2:
+			raise InvalidPreceedingLayerError(self)
+
+		p_h = 0
+		if self.same_padding:
+			p_h = (self.pool_size[0] - 1) // 2
+
+		h_size = (n_in[0] - self.pool_size[0] + 2 * p_h) // self.strides[0] + 1
+
+		self.n_in = n_in
+		self.n_out = (h_size, n_in[-1])
+
+		self.input_shape = '(None,{:4d},{:4d})'.format(*self.n_in)
+		self.output_shape = '(None,{:4d},{:4d})'.format(*self.n_out)
+
+		return self.n_out
+
+	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
+		f_h = self.pool_size[0]
+		m, H_prev, n_c = x.shape
+		self.x = x
+
+		p_h = 0
+		s_h = self.strides[0]
+		if self.same_padding:
+			p_h = (f_h - 1) // 2
+			x = np.pad(x, ((0, 0), (p_h, p_h), (0, 0)), mode='constant', constant_values=(0, 0))
+
+		H = int((H_prev - f_h + 2 * p_h) / s_h) + 1
+
+		z = np.zeros((m, H, n_c))
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for c in range(n_c):
+				if self.mode == 'max':
+					func = np.max
+				else:
+					func = np.mean
+				z[:, h, c] = func(x[:, vert_start:vert_end, c], axis=1)
+
+		return z
+
+	def diff(self, da):
+		f_h = self.pool_size[0]
+		m, H, n_c_out = da.shape
+
+		s_h = self.strides[0]
+
+		dx = np.zeros(self.x.shape)
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for c in range(n_c_out):
+				if self.mode == 'max':
+					x_slice = self.x[:, vert_start:vert_end, c]
+					mask = np.equal(x_slice, np.max(x_slice, axis=1, keepdims=True))
+					dx[:, vert_start:vert_end, c] += (
+							mask * np.reshape(da[:, h, c], (-1, 1))
+					)
+
+				else:
+					da_mean = np.mean(da[:, vert_start:vert_end, c], axis=1)
+					dx[:, vert_start:vert_end, c] += (
+						da_mean[:, None] / np.prod(self.pool_size) * np.ones(self.pool_size)[None, ...]
+					)
+
+		return dx, np.array([[0]]), np.array([[0]])
+
+
+class GlobalPool1D(Layer):
+	"""Global Pooling Layer."""
+
+	__name__ = 'GlobalPool1D'
+
+	def __init__(self, mode='max', name=None):
+		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'):
+			raise InvalidRangeError(mode, 'max', 'avg')
+		if mode == 'max':
+			self.mode = 'max'
+		else:
+			self.mode = 'avg'
+
+		super().__init__(name, False)
+
+		self.n_in = None
+		self.n_out = None
+		self.input_shape = None
+		self.output_shape = None
+
+	def add_input_shape_to_layer(self, n_in):
+		if len(n_in) != 2:
+			raise InvalidPreceedingLayerError(self)
+
+		self.n_in = n_in
+		self.n_out = (n_in[-1],)
+
+		self.input_shape = '(None,{:4d},{:4d})'.format(*self.n_in)
+		self.output_shape = '(None,{:4d})'.format(self.n_out[0])
+
+		return self.n_out
+
+	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
+		self.x = x
+		if self.mode == 'max':
+			self.z = np.max(x, axis=1)
+		else:
+			self.z = np.mean(x, axis=1)
+
+		return self.z
+
+	def diff(self, da):
+		m, H, n_c_out = self.x.shape
+
+		if self.mode == 'max':
+			mask = np.equal(self.x, np.max(self.x, axis=1, keepdims=True))
+			dx = mask * da.reshape((m, 1, n_c_out))
+		else:
+			dx = da.reshape((m, 1, n_c_out)).repeat(H, axis=1)
+
+		return dx, np.array([[0]]), np.array([[0]])
+
+
+class Upsample1D(Layer):
+	"""1-Dimensional Up Sampling Layer."""
+
+	__name__ = 'Upsample1D'
+
+	def __init__(self, size=2, name=None):
+		if isinstance(size, int):
+			size = (size,)
+		if not isinstance(size, tuple):
+			raise WrongObjectError(size, tuple())
+		if len(size) != 1:
+			raise InvalidShapeError(size)
+		for ch in size:
+			if ch < 0:
+				raise InvalidShapeError(size)
+
+		super().__init__(name, False)
+		self.up_size = size
+
+		self.n_in = None
+		self.n_out = None
+		self.input_shape = None
+		self.output_shape = None
+
+	def add_input_shape_to_layers(self, n_in):
+		if len(n_in) != 2:
+			raise InvalidPreceedingLayerError(self)
+
+		h_size = n_in[0] * self.up_size[0]
+
+		self.n_in = n_in
+		self.n_out = (h_size, n_in[-1])
+
+		self.input_shape = '(None,{:4d},{:4d})'.format(*self.n_in)
+		self.output_shape = '(None,{:4d},{:4d})'.format(*self.n_out)
+
+		return self.n_out
+
+	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
+		z = x.repeat(self.up_size[0], axis=1)
+
+		return z
+
+	def diff(self, da):
+		m, H, n_c_out = da.shape
+
+		tensor_shape = (
+			m,
+			H // self.up_size[0],
+			self.up_size[0],
+			n_c_out
+		)
+		dx = np.reshape(da, tensor_shape).sum(axis=2)
+
+		return dx, np.array([[0]]), np.array([[0]])
 
 
 class Conv2D(Layer):
@@ -383,7 +763,7 @@ class Conv2D(Layer):
 			raise InvalidPreceedingLayerError(self)
 
 		p_h, p_w = 0, 0
-		if self.same_padding :
+		if self.same_padding:
 			p_h = (self.kernel[0] - 1) // 2
 			p_w = (self.kernel[1] - 1) // 2
 
@@ -537,11 +917,11 @@ class Pool2D(Layer):
 		self.z = None
 
 	def add_input_shape_to_layers(self, n_in):
-		if len(n_in) != 3 :
+		if len(n_in) != 3:
 			raise InvalidPreceedingLayerError(self)
 
 		p_h, p_w = 0, 0
-		if self.same_padding :
+		if self.same_padding:
 			p_h = (self.pool_size[0] - 1) // 2
 			p_w = (self.pool_size[1] - 1) // 2
 
@@ -566,7 +946,7 @@ class Pool2D(Layer):
 
 		p_h, p_w = 0, 0
 		s_h, s_w = self.strides
-		if self.same_padding :
+		if self.same_padding:
 			p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
 			x = np.pad(x, ((0, 0), (p_h, p_h), (p_w, p_w), (0, 0)), mode='constant', constant_values=(0, 0))
 
@@ -613,8 +993,8 @@ class Pool2D(Layer):
 						)
 
 					else:
-						da_mean = np.mean(da[:, vert_start:vert_end, horiz_start:horiz_end, c], axis=(1,2))
-						dx[:, vert_start :vert_end, horiz_start :horiz_end, c] += (
+						da_mean = np.mean(da[:, vert_start:vert_end, horiz_start:horiz_end, c], axis=(1, 2))
+						dx[:, vert_start:vert_end, horiz_start:horiz_end, c] += (
 							da_mean[:, None, None] / np.prod(self.pool_size) * np.ones(self.pool_size)[None, ...]
 						)
 
@@ -627,7 +1007,7 @@ class GlobalPool2D(Layer):
 	__name__ = 'GlobalPool2D'
 
 	def __init__(self, mode='max', name=None):
-		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean') :
+		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'):
 			raise InvalidRangeError(mode, 'max', 'avg')
 		if mode == 'max':
 			self.mode = 'max'
@@ -642,7 +1022,7 @@ class GlobalPool2D(Layer):
 		self.output_shape = None
 
 	def add_input_shape_to_layer(self, n_in):
-		if len(n_in) != 3 :
+		if len(n_in) != 3:
 			raise InvalidPreceedingLayerError(self)
 
 		self.n_in = n_in
@@ -654,7 +1034,7 @@ class GlobalPool2D(Layer):
 		return self.n_out
 
 	def __call__(self, x, training=False):
-		if x.shape[1:] != self.n_in :
+		if x.shape[1:] != self.n_in:
 			raise UnsupportedShapeError(x.shape, self.n_in)
 
 		self.x = x
@@ -702,7 +1082,7 @@ class Upsample2D(Layer):
 		self.output_shape = None
 
 	def add_input_shape_to_layers(self, n_in):
-		if len(n_in) != 3 :
+		if len(n_in) != 3:
 			raise InvalidPreceedingLayerError(self)
 
 		h_size = n_in[0] * self.up_size[0]
@@ -717,7 +1097,7 @@ class Upsample2D(Layer):
 		return self.n_out
 
 	def __call__(self, x, training=False):
-		if x.shape[1:] != self.n_in :
+		if x.shape[1:] != self.n_in:
 			raise UnsupportedShapeError(x.shape, self.n_in)
 
 		z = x.repeat(self.up_size[0], axis=1).repeat(self.up_size[1], axis=2)
@@ -736,6 +1116,447 @@ class Upsample2D(Layer):
 			n_c_out
 		)
 		dx = np.reshape(da, tensor_shape).sum(axis=(2, 4))
+
+		return dx, np.array([[0]]), np.array([[0]])
+
+
+class Conv3D(Layer):
+	"""3-Dimensional Convolution Layer."""
+
+	__name__ = 'Conv3D'
+
+	def __init__(self, filters, kernel_size, strides=1, padding='valid',
+				 kernel_init=initializers.Normal(), biases_init=initializers.Constant(0),
+				 activation=activations.Linear(), name=None, trainable=True):
+		if not isinstance(filters, int):
+			raise WrongObjectError(filters, 0)
+		if isinstance(kernel_size, int):
+			kernel_size = (kernel_size, kernel_size, kernel_size)
+		if not isinstance(kernel_size, tuple):
+			raise WrongObjectError(kernel_size, tuple())
+		if len(kernel_size) != 3:
+			raise InvalidShapeError(kernel_size)
+		for ch in kernel_size:
+			if ch <= 0 or ch % 2 != 1:
+				raise InvalidRangeError(kernel_size)
+		if isinstance(strides, int):
+			strides = (strides, strides, strides)
+		if not isinstance(strides, tuple):
+			raise WrongObjectError(strides, tuple())
+		if len(strides) != 3:
+			raise InvalidShapeError(strides)
+		for ch in strides:
+			if ch <= 0:
+				raise InvalidShapeError(strides)
+		padding = padding.lower()
+		if not (padding == 'valid' or padding == 'same'):
+			raise InvalidRangeError(padding, 'valid', 'same')
+		if not isinstance(kernel_init, initializers.Initializer):
+			raise WrongObjectError(kernel_init, initializers.Initializer())
+		if not isinstance(biases_init, initializers.Initializer):
+			raise WrongObjectError(biases_init, initializers.Initializer())
+		if isinstance(activation, str):
+			activation = activations.get(activation)
+		if not isinstance(activation, activations.Activation):
+			raise WrongObjectError(activation, activations.Activation())
+
+		super().__init__(name, trainable)
+		self.n_in = (None, None, None, 1)
+		self.n_out = (None, None, None, filters)
+		self.kernel_init = kernel_init
+		self.biases_init = biases_init
+		self.activation = activation
+		self.strides = strides
+		self.same_padding = (padding == 'same')
+
+		self.input_shape = None
+		self.output_shape = None
+
+		self.kernel = kernel_size
+		self.biases = None
+
+	def add_input_shape_to_layers(self, n_in):
+		if len(n_in) != 4:
+			raise InvalidPreceedingLayerError(self)
+
+		p_h, p_w, p_d = 0, 0, 0
+		if self.same_padding:
+			p_h = (self.kernel[0] - 1) // 2
+			p_w = (self.kernel[1] - 1) // 2
+			p_d = (self.kernel[2] - 1) // 2
+
+		h_size = (n_in[0] - self.kernel[0] + 2 * p_h) // self.strides[0] + 1
+		w_size = (n_in[1] - self.kernel[1] + 2 * p_w) // self.strides[1] + 1
+		d_size = (n_in[2] - self.kernel[2] + 2 * p_d) // self.strides[2] + 1
+
+		self.n_in = n_in
+		self.n_out = (h_size, w_size, d_size, self.n_out[-1])
+
+		self.kernel = self.kernel_init((self.n_out[-1], *self.kernel, self.n_in[-1]))
+		self.biases = self.biases_init((self.n_out[-1], 1, 1, 1, 1))
+
+		self.input_shape = '(None,{:4d},{:4d},{:4d},{:4d})'.format(*self.n_in)
+		self.output_shape = '(None,{:4d},{:4d},{:4d},{:4d})'.format(*self.n_out)
+
+		return self.n_out
+
+	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
+		n_c_out, f_h, f_w, f_d, n_c_in = self.kernel.shape
+		m, H_prev, W_prev, D_prev, n_c_in = x.shape
+		self.x = x
+
+		p_h, p_w, p_d = 0, 0, 0
+		s_h, s_w, s_d = self.strides
+		if self.same_padding:
+			p_h, p_w, p_d = (f_h - 1)//2, (f_w - 1)//2, (f_d - 1)//2
+			x = np.pad(x, ((0, 0), (p_h, p_h), (p_w, p_w), (p_d, p_d), (0, 0)), mode='constant', constant_values=(0, 0))
+
+
+		H = int((H_prev - f_h + 2 * p_h) / s_h) + 1
+		W = int((W_prev - f_w + 2 * p_w) / s_w) + 1
+		D = int((D_prev - f_d + 2 * p_d) / s_d) + 1
+
+		z = np.zeros((m, H, W, D, n_c_out))
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for w in range(W):
+				horiz_start = s_w * w
+				horiz_end = s_w * w + f_w
+				for d in range(D):
+					depth_start = s_d * d
+					depth_end = s_d * d + f_d
+					for c in range(n_c_out):
+						z[:, h, w, d, c] = (
+							np.sum(x[:, vert_start:vert_end, horiz_start:horiz_end, depth_start:depth_end, :]
+								   * self.kernel[c] + self.biases[c], axis=(1, 2, 3, 4))
+						)
+		self.z = z
+		return self.activation(z)
+
+	def diff(self, da):
+		n_c_out, f_h, f_w, f_d, n_c_in = self.kernel.shape
+		m, H, W, D, n_c_out = da.shape
+
+		s_h, s_w, s_d = self.strides
+		p_h, p_w, p_d = 0, 0, 0
+		if self.same_padding:
+			p_h, p_w, p_d = (f_h - 1)//2, (f_w - 1)//2, (f_d - 1)//2
+
+		dz = da * self.activation.diff(self.z)
+
+		x_pad = np.pad(self.x, ((0, 0), (p_h, p_h), (p_w, p_w), (p_d, p_d), (0, 0)), mode='constant', constant_values=(0, 0))
+		dx_pad = np.zeros(self.x_pad.shape)
+		dw = np.zeros(self.kernel.shape)
+		db = np.zeros(self.biases.shape)
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for w in range(W):
+				horiz_start = s_w * w
+				horiz_end = s_w * w + f_w
+				for d in range(D):
+					depth_start = s_d * d
+					depth_end = s_d * d + f_d
+					for c in range(n_c_out):
+						dx_pad[:, vert_start:vert_end, horiz_start:horiz_end, depth_start:depth_end, :] += (
+								self.kernel[c][None, ...] * dz[:, h, w, c][:, None, None, None, None]
+						)
+						dw[c] += np.sum(
+							x_pad[:, vert_start:vert_end, horiz_start:horiz_end, depth_start:depth_end, :]
+							* dz[:, h, w, d, c][:, None, None, None, None],
+							axis=0
+						)
+						db[c] += np.sum(dz[:, h, w, d, c], axis=0)
+
+		dx = dx_pad[:, p_h:-p_h, p_w:-p_w, p_d:-p_d, :]
+		return dx, dw, db
+
+	def count_params(self):
+		return np.prod(self.kernel.shape) + self.n_out[-1]
+
+	def get_weights(self):
+		return self.kernel, self.biases
+
+	def set_weights(self, weights, biases):
+		if weights.shape != self.kernel.shape:
+			raise UnsupportedShapeError(weights.shape, self.kernel.shape)
+		if biases.shape != self.biases.shape:
+			raise UnsupportedShapeError(biases.shape, self.biases.shape)
+
+		self.kernel = np.array(weights)
+		self.biases = np.array(biases)
+
+
+class Pool3D(Layer):
+	"""3-Dimensional Pooling Layer."""
+
+	__name__ = 'Pool3D'
+
+	def __init__(self, pool_size=2, strides=None, padding='valid', mode='max', name=None, trainable=True):
+		if isinstance(pool_size, int):
+			pool_size = (pool_size, pool_size, pool_size)
+		if not isinstance(pool_size, tuple):
+			raise WrongObjectError(pool_size, tuple())
+		if len(pool_size) != 3:
+			raise InvalidShapeError(pool_size)
+		for ch in pool_size:
+			if ch <= 0:
+				raise InvalidShapeError(pool_size)
+		if strides is None:
+			strides = pool_size
+		elif isinstance(strides, int):
+			strides = (strides, strides, strides)
+		if not isinstance(strides, tuple):
+			raise WrongObjectError(strides, tuple())
+		if len(strides) != 3:
+			raise InvalidShapeError(strides)
+		for ch in strides:
+			if ch <= 0:
+				raise InvalidShapeError(strides)
+		padding = padding.lower()
+		if not (padding == 'valid' or padding == 'same'):
+			raise InvalidRangeError(padding, 'valid', 'same')
+		mode = mode.lower()
+		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'):
+			raise InvalidRangeError(mode, 'max', 'avg')
+		if mode == 'max':
+			self.mode = 'max'
+		else:
+			self.mode = 'avg'
+
+		super().__init__(name, trainable)
+		self.pool_size = pool_size
+		self.strides = strides
+		self.same_padding = padding == 'same'
+
+		self.n_in = None
+		self.n_out = None
+		self.input_shape = None
+		self.output_shape = None
+
+		self.x = None
+		self.z = None
+
+	def add_input_shape_to_layers(self, n_in):
+		if len(n_in) != 4:
+			raise InvalidPreceedingLayerError(self)
+
+		p_h, p_w, p_d = 0, 0, 0
+		if self.same_padding:
+			p_h = (self.pool_size[0] - 1) // 2
+			p_w = (self.pool_size[1] - 1) // 2
+			p_d = (self.pool_size[2] - 1) // 2
+
+		h_size = (n_in[0] - self.pool_size[0] + 2 * p_h) // self.strides[0] + 1
+		w_size = (n_in[1] - self.pool_size[1] + 2 * p_w) // self.strides[1] + 1
+		d_size = (n_in[2] - self.pool_size[2] + 2 * p_d) // self.strides[2] + 1
+
+		self.n_in = n_in
+		self.n_out = (h_size, w_size, d_size, n_in[-1])
+
+		self.input_shape = '(None,{:4d},{:4d},{:4d},{:4d})'.format(*self.n_in)
+		self.output_shape = '(None,{:4d},{:4d},{:4d},{:4d})'.format(*self.n_out)
+
+		return self.n_out
+
+	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
+		f_h, f_w, f_d = self.pool_size
+		m, H_prev, W_prev, D_prev, n_c = x.shape
+		self.x = x
+
+		p_h, p_w, p_d = 0, 0, 0
+		s_h, s_w, s_d = self.strides
+		if self.same_padding:
+			p_h, p_w, p_d = (f_h - 1) // 2, (f_w - 1) // 2, (f_d - 1) // 2
+			x = np.pad(x, ((0, 0), (p_h, p_h), (p_w, p_w), (p_d, p_d), (0, 0)), mode='constant', constant_values=(0, 0))
+
+		H = int((H_prev - f_h + 2 * p_h) / s_h) + 1
+		W = int((W_prev - f_w + 2 * p_w) / s_w) + 1
+		D = int((D_prev - f_d + 2 * p_d) / s_d) + 1
+
+		z = np.zeros((m, H, W, D, n_c))
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for w in range(W):
+				horiz_start = s_w * w
+				horiz_end = s_w * w + f_w
+				for d in range(D):
+					depth_start = s_d * d
+					depth_end = s_d * d + f_d
+					for c in range(n_c):
+						if self.mode == 'max':
+							func = np.max
+						else:
+							func = np.mean
+						z[:, h, w, d, c] = func(x[:, vert_start:vert_end, horiz_start:horiz_end, depth_start:depth_end,
+												c], axis=(1, 2, 3))
+
+		return z
+
+	def diff(self, da):
+		f_h, f_w, f_d = self.pool_size
+		m, H, W, D, n_c_out = da.shape
+
+		s_h, s_w, s_d = self.strides
+
+		dx = np.zeros(self.x.shape)
+
+		for h in range(H):
+			vert_start = s_h * h
+			vert_end = s_h * h + f_h
+			for w in range(W):
+				horiz_start = s_w * w
+				horiz_end = s_w * w + f_w
+				for d in range(D):
+					depth_start = s_d * d
+					depth_end = s_d * d + f_d
+					for c in range(n_c_out):
+						if self.mode == 'max':
+							x_slice = self.x[:, vert_start:vert_end, horiz_start:horiz_end, depth_start:depth_end, c]
+							mask = np.equal(x_slice, np.max(x_slice, axis=(1, 2, 3), keepdims=True))
+							dx[:, vert_start:vert_end, horiz_start:horiz_end, depth_start:, depth_end, c] += (
+									mask * np.reshape(da[:, h, w, d, c], (-1, 1, 1, 1))
+							)
+
+						else:
+							da_mean = np.mean(da[:, vert_start:vert_end, horiz_start:horiz_end, depth_start:depth_end,
+											  c], axis=(1, 2, 3))
+							dx[:, vert_start:vert_end, horiz_start:horiz_end, depth_start:depth_end, c] += (
+								da_mean[:, None, None, None] / np.prod(self.pool_size) * np.ones(self.pool_size)[None, ...]
+							)
+
+		return dx, np.array([[0]]), np.array([[0]])
+
+
+class GlobalPool3D(Layer):
+	"""Global Pooling Layer."""
+
+	__name__ = 'GlobalPool3D'
+
+	def __init__(self, mode='max', name=None):
+		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'):
+			raise InvalidRangeError(mode, 'max', 'avg')
+		if mode == 'max':
+			self.mode = 'max'
+		else:
+			self.mode = 'avg'
+
+		super().__init__(name, False)
+
+		self.n_in = None
+		self.n_out = None
+		self.input_shape = None
+		self.output_shape = None
+
+	def add_input_shape_to_layer(self, n_in):
+		if len(n_in) != 4:
+			raise InvalidPreceedingLayerError(self)
+
+		self.n_in = n_in
+		self.n_out = (n_in[-1],)
+
+		self.input_shape = '(None,{:4d},{:4d},{:4d},{:4d})'.format(*self.n_in)
+		self.output_shape = '(None,{:4d})'.format(self.n_out[0])
+
+		return self.n_out
+
+	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
+		self.x = x
+		if self.mode == 'max':
+			self.z = np.max(x, axis=(1, 2, 3))
+		else:
+			self.z = np.mean(x, axis=(1, 2, 3))
+
+		return self.z
+
+	def diff(self, da):
+		m, H, W, D, n_c_out = self.x.shape
+
+		if self.mode == 'max':
+			mask = np.equal(self.x, np.max(self.x, axis=(1, 2, 3), keepdims=True))
+			dx = mask * da.reshape((m, 1, 1, 1, n_c_out))
+		else:
+			dx = da.reshape((m, 1, 1, 1, n_c_out)).repeat(H, axis=1).repeat(W, axis=2).repeat(D, axis=3)
+
+		return dx, np.array([[0]]), np.array([[0]])
+
+
+class Upsample3D(Layer):
+	"""3-Dimensional Up Sampling Layer."""
+
+	__name__ = 'Upsample3D'
+
+	def __init__(self, size=2, name=None):
+		if isinstance(size, int):
+			size = (size, size, size)
+		if not isinstance(size, tuple):
+			raise WrongObjectError(size, tuple())
+		if len(size) != 3:
+			raise InvalidShapeError(size)
+		for ch in size:
+			if ch < 0:
+				raise InvalidShapeError(size)
+
+		super().__init__(name, False)
+		self.up_size = size
+
+		self.n_in = None
+		self.n_out = None
+		self.input_shape = None
+		self.output_shape = None
+
+	def add_input_shape_to_layers(self, n_in):
+		if len(n_in) != 4:
+			raise InvalidPreceedingLayerError(self)
+
+		h_size = n_in[0] * self.up_size[0]
+		w_size = n_in[1] * self.up_size[1]
+		d_size = n_in[2] * self.up_size[2]
+
+		self.n_in = n_in
+		self.n_out = (h_size, w_size, d_size, n_in[-1])
+
+		self.input_shape = '(None,{:4d},{:4d},{:4d},{:4d})'.format(*self.n_in)
+		self.output_shape = '(None,{:4d},{:4d},{:4d},{:4d})'.format(*self.n_out)
+
+		return self.n_out
+
+	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
+		z = x.repeat(self.up_size[0], axis=1).repeat(self.up_size[1], axis=2).repeat(self.up_size[2], axis=3)
+
+		return z
+
+	def diff(self, da):
+		m, H, W, D, n_c_out = da.shape
+
+		tensor_shape = (
+			m,
+			H // self.up_size[0],
+			self.up_size[0],
+			W // self.up_size[1],
+			self.up_size[1],
+			D // self.up_size[2],
+			self.up_size[2],
+			n_c_out
+		)
+		dx = np.reshape(da, tensor_shape).sum(axis=(2, 4, 6))
 
 		return dx, np.array([[0]]), np.array([[0]])
 
