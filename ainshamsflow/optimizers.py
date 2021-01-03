@@ -113,13 +113,16 @@ class Optimizer:
 					if regularization_diff is not None:
 						dw += regularization_diff[j]
 					weights, biases = layers[j].get_weights()
-					updated_weights = self._update(weights, dw)
-					updated_biases = self._update(biases, db)
+					updated_weights = self._update(weights, dw, layer_num=j, is_weight=True)
+					updated_biases = self._update(biases, db, layer_num=j, is_weight=False)
 					layers[j].set_weights(updated_weights, updated_biases)
 		return loss_value, metric_values
 
-	def _update(self, weights, dw):
+	def _update(self, weights, dw, layer_num, is_weight):
 		raise BaseClassError
+
+#TODO: Add options for list:
+#	to be used for when a model is used as a layer
 
 
 class SGD(Optimizer):
@@ -127,13 +130,46 @@ class SGD(Optimizer):
 
 	__name__ = 'SGD'
 
-	def _update(self, weights, dw):
+	def _update(self, weights, dw, layer_num, is_weight):
 		"""Update step for SGD."""
-		if isinstance(weights, list) and isinstance(dw, list):
-			ans = []
-			for weight, d in zip(weights, dw):
-				ans.append(weight - self.lr * d)
-			return ans
-		else:
-			assert np.shape(weights) == np.shape(dw)
-			return weights - self.lr * dw
+		assert np.shape(weights) == np.shape(dw)
+		return weights - self.lr * dw
+
+
+class Momentum(Optimizer):
+	"""SGD with Momentum"""
+
+	__name__ = 'Momentum'
+
+	def __init__(self, lr=0.01, beta=0.9):
+		super().__init__(lr)
+		self.beta = beta
+		self.momentum = {}
+
+	def _update(self, weights, dw, layer_num, is_weight):
+		assert np.shape(weights) == np.shape(dw)
+
+		# check for first time:
+		layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
+		if layer_id not in self.momentum.keys():
+			self.momentum[layer_id] = np.zeros(weights.shape)
+
+		# update step
+		self.momentum[layer_id] = self.beta * self.momentum[layer_id] - self.lr * dw
+		return weights + self.momentum[layer_id]
+
+
+class AdaGrad(Optimizer):
+	pass
+
+
+class RMSProp(Optimizer):
+	pass
+
+
+class AdaDelta(Optimizer):
+	pass
+
+
+class Adam(Optimizer):
+	pass
