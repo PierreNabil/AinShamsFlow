@@ -59,8 +59,7 @@ history.show()
 ```
 
 
-A more elaborate example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsFlow/blob/master/main.py)
-
+A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipynb](/demo.ipynb)
 
 ## Team Members:
 * [Pierre Nabil](https://github.com/PierreNabil)
