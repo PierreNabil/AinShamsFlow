@@ -7,7 +7,9 @@ import numpy as np
 
 from ainshamsflow import activations
 from ainshamsflow import initializers
-from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
+from ainshamsflow.utils.asf_errors import (BaseClassError, NameNotFoundError, UnsupportedShapeError,
+										   InvalidShapeError, WrongObjectError, InvalidPreceedingLayerError,
+										   InvalidRangeError)
 #TODO: Add More Layers
 
 
@@ -17,6 +19,7 @@ def get(layer_name):
 	layers = [Dense, BatchNorm, Dropout,
 			  # Conv1D, Pool1D, GlobalPool1D, Upsample1D,
 			  Conv2D, Pool2D, GlobalPool2D,  Upsample2D,
+			  # Conv3D, Pool3D, GlobalPool3D, Upsample3D,
 			  Flatten, Activation, Reshape]
 	for layer in layers:
 		if layer.__name__.lower() == layer_name.lower():
@@ -36,10 +39,11 @@ class Layer:
 	methods.
 	"""
 
-	def __init__(self, name, trainable):
+	def __init__(self, name=None, trainable=False):
 		"""Initialize the name and trainable parameter of the layer."""
 
-		assert isinstance(trainable, bool)
+		if not isinstance(trainable, bool):
+			raise WrongObjectError(trainable, True)
 
 		self.trainable = trainable
 		self.name = str(name)
@@ -89,13 +93,18 @@ class Dense(Layer):
 	def __init__(self, n_out, activation=activations.Linear(),
 				 weights_init=initializers.Normal(), biases_init=initializers.Constant(0),
 				 trainable=True, name=None):
-		assert isinstance(n_out, int)
-		assert n_out > 0
+		if not isinstance(n_out, int):
+			raise WrongObjectError(n_out, 1)
+		if n_out <= 0:
+			raise InvalidShapeError((n_out,))
 		if isinstance(activation, str):
 			activation = activations.get(activation)
-		assert isinstance(activation, activations.Activation)
-		assert isinstance(weights_init, initializers.Initializer)
-		assert isinstance(biases_init, initializers.Initializer)
+		if not isinstance(activation, activations.Activation):
+			raise WrongObjectError(activation, activations.Activation())
+		if not isinstance(weights_init, initializers.Initializer):
+			raise WrongObjectError(weights_init, initializers.Initializer())
+		if not isinstance(biases_init, initializers.Initializer):
+			raise WrongObjectError(biases_init, initializers.Initializer())
 
 		super().__init__(name, trainable)
 		self.n_in  = (1,)
@@ -113,7 +122,8 @@ class Dense(Layer):
 		self.z = None
 
 	def add_input_shape_to_layers(self, n_in):
-		assert len(n_in) == 1
+		if len(n_in) != 1:
+			raise InvalidPreceedingLayerError(self)
 
 		self.n_in = n_in
 		self.weights = self.weights_init((self.n_in[0], self.n_out[0]))
@@ -125,7 +135,8 @@ class Dense(Layer):
 		return self.n_out
 
 	def __call__(self, x, training=False):
-		assert x.shape[1:] == self.n_in
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
 		self.x = x
 		self.z = np.dot(x, self.weights) + self.biases
 		return self.activation(self.z)
@@ -147,8 +158,10 @@ class Dense(Layer):
 		return self.weights, self.biases
 
 	def set_weights(self, weights, biases):
-		assert weights.shape == (self.n_in[0], self.n_out[0])
-		assert biases.shape == (1, self.n_out[0])
+		if weights.shape != (self.n_in[0], self.n_out[0]):
+			raise UnsupportedShapeError(weights.shape, (self.n_in[0], self.n_out[0]))
+		if biases.shape != (1, self.n_out[0]):
+			raise UnsupportedShapeError(biases.shape, (1, self.n_out[0]))
 
 		self.weights = np.array(weights)
 		self.biases = np.array(biases)
@@ -163,14 +176,22 @@ class BatchNorm(Layer):
 				 gamma_init=initializers.Constant(1), beta_init=initializers.Constant(0),
 				 mu_init=initializers.Constant(0), sig_init=initializers.Constant(1),
 				 trainable=True, name=None):
-		assert isinstance(epsilon, float)
-		assert 0 < epsilon < 1
-		assert isinstance(momentum, float)
-		assert 0 <= momentum < 1
-		assert isinstance(gamma_init, initializers.Initializer)
-		assert isinstance(beta_init, initializers.Initializer)
-		assert isinstance(mu_init, initializers.Initializer)
-		assert isinstance(sig_init, initializers.Initializer)
+		if not isinstance(epsilon, float):
+			raise WrongObjectError(epsilon, float())
+		if not 0 < epsilon < 1:
+			raise InvalidRangeError(epsilon, 0, 1)
+		if not isinstance(momentum, float):
+			raise WrongObjectError(momentum, float())
+		if not 0 <= momentum < 1:
+			raise InvalidRangeError(momentum, 0, 1)
+		if not isinstance(gamma_init, initializers.Initializer):
+			raise WrongObjectError(gamma_init, initializers.Initializer)
+		if not isinstance(beta_init, initializers.Initializer):
+			raise WrongObjectError(beta_init, initializers.Initializer)
+		if not isinstance(mu_init, initializers.Initializer):
+			raise WrongObjectError(mu_init, initializers.Initializer)
+		if not isinstance(sig_init, initializers.Initializer):
+			raise WrongObjectError(sig_init, initializers.Initializer)
 
 		super().__init__(name, trainable)
 		self.epsilon = epsilon
@@ -203,6 +224,9 @@ class BatchNorm(Layer):
 		return n
 
 	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
 		if training:
 			sample_mu = np.mean(x, axis=0, keepdims=True)
 			sample_sig = np.mean(x - sample_mu, axis=0, keepdims=True)
@@ -235,8 +259,10 @@ class BatchNorm(Layer):
 		return self.gamma, self.beta
 
 	def set_weights(self, gamma, beta):
-		assert gamma.shape == self.n_out
-		assert beta.shape == self.n_out
+		if gamma.shape != self.n_out:
+			raise UnsupportedShapeError(gamma.shape, self.n_out)
+		if beta.shape != self.n_out:
+			raise UnsupportedShapeError(beta.shape, self.n_out)
 
 		self.gamma = np.array(gamma)
 		self.beta = np.array(beta)
@@ -252,22 +278,26 @@ class Dropout(Layer):
 	__name__ = 'Dropout'
 
 	def __init__(self, prob, name=None):
-		assert 0 < prob <= 1
+		if not 0 < prob <= 1:
+			raise InvalidRangeError(prob, 0, 1)
 		self.rate = prob
 
 		super().__init__(name, False)
+		self.n_in = None
 		self.n_out = None
 		self.input_shape = None
 		self.output_shape = None
 		self.filters = None
 
 	def add_input_shape_to_layers(self, n):
-		self.n_out = n
+		self.n_out = self.n_in = n
 		self.input_shape = self.output_shape = '(None' + (',{:4}'*len(n)).format(*n) + ')'
 		return n
 
 	def __call__(self, x, training=False):
-		assert x.shape[1:] == self.n_out
+		if x.shape[1 :] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
 		self.filter = np.random.rand(*x.shape) < self.rate if training else 1
 		return self.filter * x
 
@@ -301,27 +331,37 @@ class Conv2D(Layer):
 	def __init__(self, filters, kernel_size, strides=1, padding='valid',
 				 kernel_init=initializers.Normal(), biases_init=initializers.Constant(0),
 				 activation=activations.Linear(), name=None, trainable=True):
-		assert isinstance(filters, int)
+		if not isinstance(filters, int):
+			raise WrongObjectError(filters, 0)
 		if isinstance(kernel_size, int):
 			kernel_size = (kernel_size, kernel_size)
-		assert isinstance(kernel_size, tuple)
-		assert len(kernel_size) == 2
+		if not isinstance(kernel_size, tuple):
+			raise WrongObjectError(kernel_size, tuple())
+		if len(kernel_size) != 2:
+			raise InvalidShapeError(kernel_size)
 		for ch in kernel_size:
-			assert ch > 0
-			assert ch % 2 == 1
+			if ch <= 0 or ch % 2 != 1:
+				raise InvalidRangeError(kernel_size)
 		if isinstance(strides, int):
 			strides = (strides, strides)
-		assert isinstance(strides, tuple)
-		assert len(strides) == 2
+		if not isinstance(strides, tuple):
+			raise WrongObjectError(strides, tuple())
+		if len(strides) != 2:
+			raise InvalidShapeError(strides)
 		for ch in strides:
-			assert ch > 0
+			if ch <= 0:
+				raise InvalidShapeError(strides)
 		padding = padding.lower()
-		assert padding == 'valid' or padding == 'same'
-		assert isinstance(kernel_init, initializers.Initializer)
-		assert isinstance(biases_init, initializers.Initializer)
+		if not (padding == 'valid' or padding == 'same'):
+			raise InvalidRangeError(padding, 'valid', 'same')
+		if not isinstance(kernel_init, initializers.Initializer):
+			raise WrongObjectError(kernel_init, initializers.Initializer())
+		if not isinstance(biases_init, initializers.Initializer):
+			raise WrongObjectError(biases_init, initializers.Initializer())
 		if isinstance(activation, str):
 			activation = activations.get(activation)
-		assert isinstance(activation, activations.Activation)
+		if not isinstance(activation, activations.Activation):
+			raise WrongObjectError(activation, activations.Activation())
 
 		super().__init__(name, trainable)
 		self.n_in = (None, None, 1)
@@ -339,9 +379,8 @@ class Conv2D(Layer):
 		self.biases = None
 
 	def add_input_shape_to_layers(self, n_in):
-		assert len(n_in) == 3
-		for ch in n_in:
-			assert ch > 0
+		if len(n_in) != 3:
+			raise InvalidPreceedingLayerError(self)
 
 		p_h, p_w = 0, 0
 		if self.same_padding :
@@ -363,9 +402,11 @@ class Conv2D(Layer):
 		return self.n_out
 
 	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
 		n_c_out, f_h, f_w, n_c_in = self.kernel.shape
 		m, H_prev, W_prev, n_c_in = x.shape
-		assert x.shape[1:] == self.n_in
 		self.x = x
 
 		p_h, p_w = 0, 0
@@ -396,7 +437,6 @@ class Conv2D(Layer):
 	def diff(self, da):
 		n_c_out, f_h, f_w, n_c_in = self.kernel.shape
 		m, H, W, n_c_out = da.shape
-		assert da.shape[1:] == self.n_out
 
 		s_h, s_w = self.strides
 		p_h, p_w = 0, 0
@@ -437,8 +477,10 @@ class Conv2D(Layer):
 		return self.kernel, self.biases
 
 	def set_weights(self, weights, biases):
-		assert weights.shape == self.kernel.shape
-		assert biases.shape == self.biases.shape
+		if weights.shape != self.kernel.shape:
+			raise UnsupportedShapeError(weights.shape, self.kernel.shape)
+		if biases.shape != self.biases.shape:
+			raise UnsupportedShapeError(biases.shape, self.biases.shape)
 
 		self.kernel = np.array(weights)
 		self.biases = np.array(biases)
@@ -452,20 +494,30 @@ class Pool2D(Layer):
 	def __init__(self, pool_size=2, strides=None, padding='valid', mode='max', name=None, trainable=True):
 		if isinstance(pool_size, int):
 			pool_size = (pool_size, pool_size)
-		assert isinstance(pool_size, tuple)
-		assert len(pool_size) == 2
+		if not isinstance(pool_size, tuple):
+			raise WrongObjectError(pool_size, tuple())
+		if len(pool_size) != 2:
+			raise InvalidShapeError(pool_size)
 		for ch in pool_size:
-			assert ch > 0
+			if ch <= 0:
+				raise InvalidShapeError(pool_size)
 		if strides is None:
 			strides = pool_size
 		elif isinstance(strides, int):
 			strides = (strides, strides)
-		assert isinstance(strides, tuple)
+		if not isinstance(strides, tuple):
+			raise WrongObjectError(strides, tuple())
+		if len(strides) != 2:
+			raise InvalidShapeError(strides)
 		for ch in strides:
-			assert ch > 0
+			if ch <= 0:
+				raise InvalidShapeError(strides)
 		padding = padding.lower()
-		assert padding == 'valid' or padding == 'same'
-		assert mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'
+		if not (padding == 'valid' or padding == 'same'):
+			raise InvalidRangeError(padding, 'valid', 'same')
+		mode = mode.lower()
+		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'):
+			raise InvalidRangeError(mode, 'max', 'avg')
 		if mode == 'max':
 			self.mode = 'max'
 		else:
@@ -485,9 +537,8 @@ class Pool2D(Layer):
 		self.z = None
 
 	def add_input_shape_to_layers(self, n_in):
-		assert len(n_in) == 3
-		for ch in n_in :
-			assert ch > 0
+		if len(n_in) != 3 :
+			raise InvalidPreceedingLayerError(self)
 
 		p_h, p_w = 0, 0
 		if self.same_padding :
@@ -506,9 +557,11 @@ class Pool2D(Layer):
 		return self.n_out
 
 	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
 		f_h, f_w = self.pool_size
 		m, H_prev, W_prev, n_c = x.shape
-		assert x.shape[1:] == self.n_in
 		self.x = x
 
 		p_h, p_w = 0, 0
@@ -540,7 +593,6 @@ class Pool2D(Layer):
 	def diff(self, da):
 		f_h, f_w = self.pool_size
 		m, H, W, n_c_out = da.shape
-		assert da.shape[1:] == self.n_out
 
 		s_h, s_w = self.strides
 
@@ -575,7 +627,8 @@ class GlobalPool2D(Layer):
 	__name__ = 'GlobalPool2D'
 
 	def __init__(self, mode='max', name=None):
-		assert mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'
+		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean') :
+			raise InvalidRangeError(mode, 'max', 'avg')
 		if mode == 'max':
 			self.mode = 'max'
 		else:
@@ -589,9 +642,8 @@ class GlobalPool2D(Layer):
 		self.output_shape = None
 
 	def add_input_shape_to_layer(self, n_in):
-		assert len(n_in) == 3
-		for ch in n_in :
-			assert ch > 0
+		if len(n_in) != 3 :
+			raise InvalidPreceedingLayerError(self)
 
 		self.n_in = n_in
 		self.n_out = (n_in[-1],)
@@ -602,9 +654,10 @@ class GlobalPool2D(Layer):
 		return self.n_out
 
 	def __call__(self, x, training=False):
-		assert x.shape[1:] == self.n_in
-		self.x = x
+		if x.shape[1:] != self.n_in :
+			raise UnsupportedShapeError(x.shape, self.n_in)
 
+		self.x = x
 		if self.mode == 'max':
 			self.z = np.max(x, axis=(1, 2))
 		else:
@@ -613,7 +666,6 @@ class GlobalPool2D(Layer):
 		return self.z
 
 	def diff(self, da):
-		assert da.shape[1:] == self.n_out
 		m, H, W, n_c_out = self.x.shape
 
 		if self.mode == 'max':
@@ -625,7 +677,6 @@ class GlobalPool2D(Layer):
 		return dx, np.array([[0]]), np.array([[0]])
 
 
-
 class Upsample2D(Layer):
 	"""2-Dimensional Up Sampling Layer."""
 
@@ -634,10 +685,13 @@ class Upsample2D(Layer):
 	def __init__(self, size=2, name=None):
 		if isinstance(size, int):
 			size = (size, size)
-		assert isinstance(size, tuple)
-		assert len(size) == 2
+		if not isinstance(size, tuple):
+			raise WrongObjectError(size, tuple())
+		if len(size) != 2:
+			raise InvalidShapeError(size)
 		for ch in size:
-			assert ch > 0
+			if ch < 0:
+				raise InvalidShapeError(size)
 
 		super().__init__(name, False)
 		self.up_size = size
@@ -648,9 +702,8 @@ class Upsample2D(Layer):
 		self.output_shape = None
 
 	def add_input_shape_to_layers(self, n_in):
-		assert len(n_in) == 3
-		for ch in n_in:
-			assert ch > 0
+		if len(n_in) != 3 :
+			raise InvalidPreceedingLayerError(self)
 
 		h_size = n_in[0] * self.up_size[0]
 		w_size = n_in[1] * self.up_size[1]
@@ -664,7 +717,8 @@ class Upsample2D(Layer):
 		return self.n_out
 
 	def __call__(self, x, training=False):
-		assert x.shape[1:] == self.n_in
+		if x.shape[1:] != self.n_in :
+			raise UnsupportedShapeError(x.shape, self.n_in)
 
 		z = x.repeat(self.up_size[0], axis=1).repeat(self.up_size[1], axis=2)
 
@@ -672,7 +726,6 @@ class Upsample2D(Layer):
 
 	def diff(self, da):
 		m, H, W, n_c_out = da.shape
-		assert da.shape[1:] == self.n_out
 
 		tensor_shape = (
 			m,
@@ -716,6 +769,9 @@ class Flatten(Layer):
 		return self.n_out
 
 	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
 		return np.reshape(x, (-1,)+self.n_out)
 
 	def diff(self, da):
@@ -729,12 +785,13 @@ class Activation(Layer):
 	__name__ = 'Activation'
 
 	def __init__(self, act, name=None):
-		assert isinstance(act, str) or isinstance(act, activations.Activation)
 		if isinstance(act, str):
 			self.activation = activations.get(act)
-		else:
-			self.activation = act
-			act = act.__name__
+		if not isinstance(act, activations.Activation()):
+			raise WrongObjectError(act, activations.Activation())
+		self.activation = act
+		act = act.__name__
+
 		if name is None:
 			super().__init__(act, False)
 		else:
@@ -752,6 +809,9 @@ class Activation(Layer):
 		return self.n_out
 
 	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
 		self.x = x
 		return self.activation(x)
 
@@ -769,18 +829,20 @@ class Reshape(Layer):
 	__name__ = 'Reshape'
 
 	def __init__(self, n_out, name=None):
-		assert isinstance(n_out, tuple)
+		if not isinstance(n_out, tuple):
+			raise WrongObjectError(n_out, tuple())
 
 		num_of_unk_ch = 0
 		self.unk_ch_id = None
 		for i, ch in enumerate(n_out):
 			if ch == -1 or ch is None:
 				if num_of_unk_ch:
-					raise UnsupportedShapeError(n_out, 'a shape with less than one unknown dimension.')
+					raise InvalidShapeError(n_out)
 				num_of_unk_ch += 1
 				self.unk_ch_id = i
 			else:
-				assert ch > 0
+				if ch <= 0:
+					raise InvalidShapeError(n_out)
 
 		super().__init__(name, False)
 		self.n_out = n_out
@@ -802,6 +864,9 @@ class Reshape(Layer):
 		return self.n_out
 
 	def __call__(self, x, training=False):
+		if x.shape[1:] != self.n_in:
+			raise UnsupportedShapeError(x.shape, self.n_in)
+
 		return np.reshape(x, (-1,)+self.n_out)
 
 	def diff(self, da):

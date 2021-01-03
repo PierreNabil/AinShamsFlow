@@ -15,7 +15,8 @@ from ainshamsflow.optimizers import Optimizer
 from ainshamsflow.losses import Loss
 from ainshamsflow.metrics import Metric
 from ainshamsflow.utils.asf_errors import (UncompiledModelError, MultipleAccessError, BaseClassError,
-										   LayerNotFoundError, UnsupportedShapeError)
+										   LayerNotFoundError, UnsupportedShapeError, WrongObjectError,
+										   InvalidShapeError)
 
 
 def load_model(filename):
@@ -32,10 +33,13 @@ class Model(Layer):
 	def __init__(self, input_shape, name, trainable=True):
 		"""Initialize model name."""
 
-		assert isinstance(input_shape, tuple)
-		assert len(input_shape) > 0
+		if not isinstance(input_shape, tuple):
+			raise WrongObjectError(input_shape, tuple())
+		if len(input_shape) <= 0:
+			raise InvalidShapeError(input_shape)
 		for ch in input_shape:
-			assert ch > 0
+			if ch <= 0:
+				raise InvalidShapeError(input_shape)
 
 		super().__init__(name, trainable)
 		self.n_in = input_shape
@@ -48,15 +52,21 @@ class Model(Layer):
 		self.metrics = None
 		self.regularizer = None
 
-	def compile(self, optimizer, loss, metrics=[], regularizer=None):
+	def compile(self, optimizer, loss, metrics=None, regularizer=None):
 		"""Define model optimizer, loss function , metrics and regularizer."""
 
-		assert isinstance(optimizer, Optimizer)
-		assert isinstance(loss, Loss)
+		if not isinstance(optimizer, Optimizer):
+			raise WrongObjectError(optimizer, Optimizer())
+		if not isinstance(loss, Loss):
+			raise WrongObjectError(loss, Loss())
 		if metrics:
-			assert isinstance(metrics, list)
+			if not isinstance(metrics, list):
+				WrongObjectError(metrics, list())
 			for metric in metrics:
-				assert isinstance(metric, Metric)
+				if not isinstance(metric, Metric):
+					raise WrongObjectError(metric, Metric())
+		else:
+			metrics = []
 
 		self.optimizer = optimizer
 		self.loss = loss
@@ -111,10 +121,13 @@ class Sequential(Model):
 	def __init__(self, layers, input_shape, name=None):
 		"""Define the model layers, input shape and name."""
 
-		assert isinstance(layers, list)
+		if not isinstance(layers, list):
+			raise WrongObjectError(layers, list())
 		for layer in layers:
-			assert isinstance(layer, Layer)
-		assert isinstance(input_shape, tuple)
+			if not isinstance(layer, Layer):
+				raise WrongObjectError(layer, Layer())
+		if not isinstance(input_shape, tuple):
+			raise WrongObjectError(input_shape, tuple())
 
 		super().__init__(input_shape, name)
 		self.layers = layers
@@ -132,6 +145,7 @@ class Sequential(Model):
 
 		if self.optimizer is None:
 			raise UncompiledModelError
+
 		if batch_size is None:
 			m = x.shape[0]
 			batch_size = m
@@ -143,6 +157,7 @@ class Sequential(Model):
 
 		if self.optimizer is None:
 			raise UncompiledModelError
+
 		if batch_size is None:
 			m = x.shape[0]
 			batch_size = m
@@ -155,7 +170,9 @@ class Sequential(Model):
 	def add_layer(self, layer):
 		"""Add a new layer to the network."""
 
-		assert isinstance(layer, Layer)
+		if not isinstance(layer, Layer):
+			raise WrongObjectError(layer, Layer())
+
 		if self.layers:
 			n_out = self.layers[-1].n_out
 		else:
@@ -167,7 +184,11 @@ class Sequential(Model):
 		"""Get a specific layer from the model."""
 
 		if (index is None) ^ (layer_name is None):
-			assert isinstance(index, int) or isinstance(layer_name, str)
+			if not isinstance(index, int):
+				raise WrongObjectError(index, 1)
+			if not isinstance(layer_name, str):
+				raise WrongObjectError(layer_name, '')
+
 			if index is None:
 				for layer in self.layers:
 					if layer.name == layer_name:

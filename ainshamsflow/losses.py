@@ -21,6 +21,11 @@ def get(loss_name):
 	raise NameNotFoundError(loss_name, __name__)
 
 
+def _one_hot(y_pred):
+	n_c = y_pred.shape[-1]
+	return np.squeeze(np.eye(n_c)[np.argmax(y_pred, axis=-1)])
+
+
 class Loss(Metric):
 	"""Loss Base Class.
 
@@ -42,12 +47,14 @@ class MSE(Loss):
 	__name__ = 'MSE'
 
 	def __call__(self, y_pred, y_true):
-		assert y_true.shape == y_pred.shape
+		if y_true.shape != y_pred.shape:
+			raise UnsupportedShapeError(y_pred, y_true)
 		m = np.sum(y_true.shape[0])
 		return np.sum(np.square(y_pred - y_true)) / (2*m)
 
 	def diff(self, y_pred, y_true):
-		assert y_true.shape == y_pred.shape
+		if y_true.shape != y_pred.shape:
+			raise UnsupportedShapeError(y_pred, y_true)
 		m = np.sum(y_true.shape[0])
 		return (y_pred - y_true) / m
 
@@ -57,11 +64,13 @@ class MAE(Loss):
 	__name__ = 'MAE'
 
 	def __call__(self, y_pred, y_true):
-		assert y_true.shape == y_pred.shape
+		if y_true.shape != y_pred.shape:
+			raise UnsupportedShapeError(y_pred, y_true)
 		m = np.sum(y_true.shape[0])
 		return np.sum(np.abs(y_pred - y_true)) / m
 
 	def diff(self, y_pred, y_true):
-		assert y_true.shape == y_pred.shape
+		if y_true.shape != y_pred.shape:
+			raise UnsupportedShapeError(y_pred, y_true)
 		m = np.sum(y_true.shape[0])
 		return np.where(y_pred > y_true, 1, -1) / m

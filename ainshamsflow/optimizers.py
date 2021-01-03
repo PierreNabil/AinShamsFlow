@@ -121,6 +121,9 @@ class Optimizer:
 	def _update(self, weights, dw, layer_num, is_weight):
 		raise BaseClassError
 
+#TODO: Add options for list:
+#	to be used for when a model is used as a layer
+
 
 class SGD(Optimizer):
 	"""Stochastic Gradient Descent Algorithm."""
