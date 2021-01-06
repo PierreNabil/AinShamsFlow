@@ -134,10 +134,10 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
         - [x] Dropout
         
         CNN Layers 1D: (optional)
-        - [ ] Conv
-        - [ ] Pool (Avg and Max)
-        - [ ] GlobalPool (Avg and Max)
-        - [ ] Upsample
+        - [x] Conv
+        - [x] Pool (Avg and Max)
+        - [x] GlobalPool (Avg and Max)
+        - [x] Upsample
         
         CNN Layers 2D:
         - [x] Conv
@@ -146,10 +146,10 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
         - [x] Upsample
         
         CNN Layers 3D: (optional)
-        - [ ] Conv
-        - [ ] Pool (Avg and Max)
-        - [ ] GlobalPool (Avg and Max)
-        - [ ] Upsample
+        - [x] Conv
+        - [x] Pool (Avg and Max)
+        - [x] GlobalPool (Avg and Max)
+        - [x] Upsample
         
         Other Extra Functionality:
         - [x] Flatten
