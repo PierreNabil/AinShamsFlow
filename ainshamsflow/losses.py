@@ -7,7 +7,7 @@ from peras_errors import BaseClassError, NameNotFoundError
 def get(loss_name):
     """Get any Loss in this module by name"""
     losses = [MSE, MAE, MAPE, HuberLoss, LogLossLinearActivation, LogLossSigmoidActivation,
-              PerceptronCriterionLoss, SvmHingeLoss, BinaryCrossEntropy, CategoricalCrossEntropy,
+              PerceptronCriterionLoss, SvmHingeLoss, BinaryCrossentropy, CategoricalCrossentropy,
               SparseCategoricalCrossentropy]
     for loss in losses:
         if loss.__name__.lower() == loss_name.lower():
@@ -60,7 +60,7 @@ class MAE(Loss):
 
 
 class HuberLoss(Loss):
-    """huber loss error"""
+    """Huber loss error"""
     __name__ = 'HuberLoss'
 
     def __init__(self, delta=1.0):
@@ -128,8 +128,8 @@ class SvmHingeLoss(Loss):
         return np.where(y_true * y_pred <= 1, -y_true, 0)
 
 
-class BinaryCrossEntropy(Loss):
-    __name__ = 'BinaryCrossEntropy'
+class BinaryCrossentropy(Loss):
+    __name__ = 'BinaryCrossentropy'
 
     def __call__(self, y_pred, y_true):
         return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
@@ -140,8 +140,8 @@ class BinaryCrossEntropy(Loss):
         np.mean(y_pred - y_true, axis=0, keepdims=True)
 
 
-class CategoricalCrossEntropy(Loss):
-    __name__ = 'CategoricalCrossEntropy'
+class CategoricalCrossentropy(Loss):
+    __name__ = 'CategoricalCrossentropy'
 
     def __call__(self, y_true, y_pred):
         return -np.mean(y_true * np.log(y_pred))
@@ -151,6 +151,7 @@ class CategoricalCrossEntropy(Loss):
         return -(y_true / y_pred) / m
 
 class SparseCategoricalCrossentropy(Loss):
+    __name__ = 'SparseCategoricalCrossentropy'
     def __call__(self, y_pred, y_true):
         y_true = _one_hot(y_true)
         return -np.mean(y_true * np.log(y_pred))

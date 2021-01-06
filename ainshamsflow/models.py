@@ -1,40 +1,72 @@
+"""Models Module.
+
+In this module we define the Sequential model type, which is the
+main model type in asf.
+We may implement more model types in the future.
+"""
+
+
 import shelve
-import os
+from os.path import join as join_path
 import numpy as np
 
 from ainshamsflow.layers import Layer
 from ainshamsflow.optimizers import Optimizer
 from ainshamsflow.losses import Loss
 from ainshamsflow.metrics import Metric
-from ainshamsflow.utils.asf_errors import UncompiledModelError, MultipleAccessError, BaseClassError
+from ainshamsflow.utils.asf_errors import (UncompiledModelError, MultipleAccessError, BaseClassError,
+										   LayerNotFoundError, UnsupportedShapeError, WrongObjectError,
+										   InvalidShapeError)
 
 
 def load_model(filename):
+	"""Loads a model saved in 'filename'."""
+
 	with shelve.open(filename) as db:
 		model = db['self']
 	return model
 
 
-class Model:
-	def __init__(self, input_shape, name):
-		assert isinstance(input_shape[0], int)
-		assert isinstance(name, str)
+class Model(Layer):
+	"""Models Base Class."""
 
-		self.input_shape = (input_shape[0], None)
-		self.name = name
+	def __init__(self, input_shape, name, trainable=True):
+		"""Initialize model name."""
+
+		if not isinstance(input_shape, tuple):
+			raise WrongObjectError(input_shape, tuple())
+		if len(input_shape) <= 0:
+			raise InvalidShapeError(input_shape)
+		for ch in input_shape:
+			if ch <= 0:
+				raise InvalidShapeError(input_shape)
+
+		super().__init__(name, trainable)
+		self.n_in = input_shape
+		self.n_out = None
+		self.input_shape = '(None' + (',{:4}'*len(self.n_in)).format(*self.n_in) + ')'
+		self.output_shape = None
 
 		self.optimizer = None
 		self.loss = None
 		self.metrics = None
 		self.regularizer = None
 
-	def compile(self, optimizer, loss, metrics=[], regularizer=None):
-		assert isinstance(optimizer, Optimizer)
-		assert isinstance(loss, Loss)
+	def compile(self, optimizer, loss, metrics=None, regularizer=None):
+		"""Define model optimizer, loss function , metrics and regularizer."""
+
+		if not isinstance(optimizer, Optimizer):
+			raise WrongObjectError(optimizer, Optimizer())
+		if not isinstance(loss, Loss):
+			raise WrongObjectError(loss, Loss())
 		if metrics:
-			assert isinstance(metrics, list)
+			if not isinstance(metrics, list):
+				WrongObjectError(metrics, list())
 			for metric in metrics:
-				assert isinstance(metric, Metric)
+				if not isinstance(metric, Metric):
+					raise WrongObjectError(metric, Metric())
+		else:
+			metrics = []
 
 		self.optimizer = optimizer
 		self.loss = loss
@@ -48,7 +80,9 @@ class Model:
 		raise BaseClassError
 
 	def predict(self, x):
-		raise BaseClassError
+		"""Predict new data."""
+
+		return self.__call__(x)
 
 	def add_layer(self, layer):
 		raise BaseClassError
@@ -65,8 +99,10 @@ class Model:
 	def save_weights(self, filepath):
 		raise BaseClassError
 
-	def save_model(self, filepath):
-		with shelve.open(os.path.join(filepath, self.name + '.h5')) as db:
+	def save_model(self, filepath=''):
+		"""Saves model by its name in the directory specified."""
+
+		with shelve.open(join_path(filepath, self.name)) as db:
 			db['self'] = self
 
 	def print_summary(self):
@@ -74,84 +110,180 @@ class Model:
 
 
 class Sequential(Model):
-	def __init__(self, layers, input_size, name):
-		assert isinstance(layers, list)
-		for layer in layers:
-			assert isinstance(layer, Layer)
-		assert isinstance(input_size, int)
+	"""Sequential Model Class.
 
-		input_shape = (input_size, None)
+	Used to create Models where there is a strict, linear, layer-by-layer
+	structure.
+	"""
+
+	__name__ = 'Seq. Model'
+
+	def __init__(self, layers, input_shape, name=None):
+		"""Define the model layers, input shape and name."""
+
+		if not isinstance(layers, list):
+			raise WrongObjectError(layers, list())
 		for layer in layers:
-			input_size = layer.add_input_shape_to_layers(input_size)
+			if not isinstance(layer, Layer):
+				raise WrongObjectError(layer, Layer())
+		if not isinstance(input_shape, tuple):
+			raise WrongObjectError(input_shape, tuple())
 
 		super().__init__(input_shape, name)
 		self.layers = layers
 
-	def evaluate(self, x, y, batch_size=None, verbose=True):
-		if self.optimizer is None:
-			raise UncompiledModelError
-		if batch_size is None:
-			m = x.shape[1]
-			batch_size = m
-		history = self.optimizer(x, y, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
-								 verbose=verbose, training=False)
-		loss_value = np.mean(history.loss_values)
-		metric_values = history.fliped_metrics()
-		return loss_value, metric_values
+		for layer in self.layers:
+			input_shape = layer.add_input_shape_to_layers(input_shape)
+
+		self.n_out = self.layers[-1].n_out
+		# print(self.n_out)
+		n_out = [str(ch) for ch in self.n_out]
+		self.output_shape = '(None' + (',{:4}'*len(n_out)).format(*n_out) + ')'
 
 	def fit(self, x, y, epochs, batch_size=None, verbose=True):
+		"""Fit the model to the training data."""
+
 		if self.optimizer is None:
 			raise UncompiledModelError
+
 		if batch_size is None:
-			m = x.shape[1]
+			m = x.shape[0]
 			batch_size = m
 		return self.optimizer(x, y, epochs, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
 							  verbose=verbose, training=True)
 
-	def predict(self, x):
-		a = x
-		for layer in self.layers:
-			a = layer(a)
-		return a
+	def evaluate(self, x, y, batch_size=None, verbose=True):
+		"""Evaluate the model on validation data."""
+
+		if self.optimizer is None:
+			raise UncompiledModelError
+
+		if batch_size is None:
+			m = x.shape[0]
+			batch_size = m
+		history = self.optimizer(x, y, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
+								 verbose=verbose, training=False)
+		loss_value = np.mean(history.loss_values)
+		metric_values = history.flipped_metrics()
+		return loss_value, metric_values
 
 	def add_layer(self, layer):
-		assert isinstance(layer, Layer)
-		self.layers.append(layer)
+		"""Add a new layer to the network."""
 
-	def get_layer(self, index=None, layer_name=None):
+		if not isinstance(layer, Layer):
+			raise WrongObjectError(layer, Layer())
+
+		if self.layers:
+			n_out = self.layers[-1].n_out
+		else:
+			n_out = self.n_in
+		self.layers.append(layer)
+		layer.add_input_shape_to_layer(n_out)
+
+	def get_layer(self, *, index=None, layer_name=None):
+		"""Get a specific layer from the model."""
+
 		if (index is None) ^ (layer_name is None):
+			if not isinstance(index, int):
+				raise WrongObjectError(index, 1)
+			if not isinstance(layer_name, str):
+				raise WrongObjectError(layer_name, '')
+
 			if index is None:
 				for layer in self.layers:
 					if layer.name == layer_name:
 						return layer
-			else:
+				raise LayerNotFoundError('name', layer_name)
+			elif index < len(self.layers):
 				return self.layers[index]
+			else:
+				raise LayerNotFoundError('id', index)
 		else:
 			raise MultipleAccessError
 
 	def pop_layer(self):
-		self.layers.pop()
+		"""Pop the last layer from the model."""
+
+		if self.layers:
+			self.layers.pop()
 
 	def load_weights(self, filepath):
-		with shelve.open(os.path.join(filepath, self.name+'_weights')) as db:
+		"""Load weights from a directory."""
+
+		with shelve.open(join_path(filepath, self.name+'_weights')) as db:
 			for i in range(len(self.layers)):
 				layer_name = 'layer{:03d}'.format(i)
 				self.layers[i] = db[layer_name]
 
 	def save_weights(self, filepath):
-		with shelve.open(os.path.join(filepath, self.name+'_weights')) as db:
+		"""Save weights to a directory."""
+
+		with shelve.open(join_path(filepath, self.name+'_weights')) as db:
 			for i, layer in enumerate(self.layers):
 				layer_name = 'layer{:03d}'.format(i)
 				db[layer_name] = layer.get_weights()
 
 	def print_summary(self):
+		"""Print a summary of the sequential model in a table."""
+
+		spacer = '+' + '-' * 22 + '+' + '-' * 15 + '+' + '-' * 23 + '+' + '-' * 23 + '+' + '-' * 32 + '+'
+		total_params = self.count_params()
+		trainable_params = self.count_params(trainable_only=True)
+
 		print()
 		print('Sequential Model: {}'.format(self.name))
-		print('_' * (20 + 13 + 11 + 11 + 20 + 4))
-		print('{:20s} | {:13s} | {:11s} | {:11s} | {:s}'.format('Layer Type:', 'num_of_params',
+		print(spacer)
+		print('| {:20s} | {:13s} | {:>21s} | {:>21s} | {:30s} |'.format('Layer Type:', 'num_of_params',
 														'input_shape', 'output_shape', 'layer_name'))
-		print('_' * (20 + 13 + 11 + 11 + 20 + 4))
-		# '{:20s} {:13d} {:11} {:11} {}'.format(layer_name, self.count_params(), input_shape, output_shape, self.name)
+		print(spacer)
 		for layer in self.layers:
-			print(layer.summary())
-		print('_' * (20 + 13 + 11 + 11 + 20 + 4))
+			print('| ', layer.summary(), ' |', sep='')
+		print(spacer)
+		print('| {:117s} |'.format('Total Params: {}'.format(total_params)))
+		print('| {:117s} |'.format('Trainable Params: {}'.format(trainable_params)))
+		print('| {:117s} |'.format('Non-Trainable Params: {}'.format(total_params - trainable_params)))
+		print(spacer)
+		print()
+
+	# Model as a Layer Functionality:
+
+	def __call__(self, x, training=False):
+		a = x
+		for layer in self.layers:
+			a = layer(a, training)
+		return a
+
+	def diff(self, da):
+		Dw = []
+		Db = []
+
+		for layer in reversed(self.layers):
+			da, dw, db = layer.diff(da)
+			if layer.trainable:
+				Dw.insert(0, dw)
+				Db.insert(0, db)
+
+		return da, Dw, Db
+
+	def add_input_shape_to_layers(self, n_in):
+		if n_in != self.n_in:
+			raise UnsupportedShapeError(n_in, self.n_in)
+		if self.layers:
+			return self.layers[-1].n_out
+
+	def count_params(self, trainable_only=False):
+		if trainable_only:
+			return np.sum([layer.count_params() for layer in self.layers if layer.trainable])
+		else:
+			return np.sum([layer.count_params() for layer in self.layers])
+
+	def get_weights(self):
+		w_and_b = np.array([layer.get_weights() for layer in self.layers if layer.trainable])
+		weights = list(w_and_b[:, 0])
+		biases  = list(w_and_b[:, 1])
+		return weights, biases
+
+	def set_weights(self, weights, biases):
+		for i, layer in enumerate(self.layers):
+			if layer.trainable:
+				layer.set_weights(weights[i], biases[i])

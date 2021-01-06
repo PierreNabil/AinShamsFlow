@@ -16,28 +16,56 @@ However, we only implement everything from scratch using only simple libraries s
 ## Project Structure:
 The Design of all parts can be seen in the following UML Diagram.
 
-![UML Diagram of the Project]()
+![UML Diagram of the Project](/images/UML%20Class%20Diagram.png)
 
 This is how the Design Structure should work in our Framework.
 
-![Desgin Structure]()
+![Desgin Structure](/images/Design%20Structure.png)
 
 ## Usage:
-You can start by importing the module as follows:
+you start using this project my importing the package as follows:
+
 ```python
 import ainshamsflow as asf
 ```
-Then you have access to all functionality in the modules as follows.
+
+then you can start creating a model:
+
 ```python
-asf.module_name.Class_name
+model = asf.models.Sequential([
+	asf.layers.Dense(30, activation="relu"),
+	asf.layers.Dense(10, activation="relu"),
+	asf.layers.Dense( 1, activation="relu")
+], input_shape=(100,), name='my_model')
+model.print_summary()
 ```
-example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsFlow/blob/master/main.py)
+
+then compile and train the model:
+
+```python
+model.compile(
+	optimizer=asf.optimizers.SGD(),
+	loss=asf.losses.MSE()
+)
+history = model.fit(X, y, epochs=100)
+```
+
+finally you can evaluate, predict and show training statistics:
+
+```python
+model.evaluate(X, y)
+y_pred = model.predict(X_val)
+history.show()
+```
+
+
+A more elaborate example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsFlow/blob/master/main.py)
 
 
 ## Team Members:
 * [Pierre Nabil](https://github.com/PierreNabil)
 
-* [Ahmed Taha]()
+* [Ahmed Taha](https://github.com/atf01)
 
 * [Girgis Micheal](https://github.com/girgismicheal)
 
@@ -83,39 +111,50 @@ example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsF
         - [ ] flow_from_directory()
 
 - [ ] A NN Module to design different architectures.
-    - [ ] Activation Functions
+    - [x] Activation Functions
         - [x] Linear
-        - [ ] Sign
         - [x] Sigmoid
-        - [ ] Hard Sigmoid
+        - [x] Hard Sigmoid
         - [x] Tanh
-        - [ ] Hard Tanh
+        - [x] Hard Tanh
         - [x] ReLU
         - [x] LeakyReLU
-        - [ ] ELU
-        - [ ] SELU
-        - [ ] Softmax
-        - [ ] Softplus
-        - [ ] Siftsign
-        - [ ] Swish
+        - [x] ELU
+        - [x] SELU
+        - [x] Softmax
+        - [x] Softplus
+        - [x] Softsign
+        - [x] Swish
 
-    - [ ] Layers
+    - [x] Layers
+    
         DNN Layers:
         - [x] Dense
-        - [ ] BatchNorm
-        - [ ] Dropout
-        CNN Layers:
-        - [ ] Conv (1D and 2D)
+        - [x] BatchNorm
+        - [x] Dropout
+        
+        CNN Layers 1D: (optional)
+        - [ ] Conv
         - [ ] Pool (Avg and Max)
-        - [ ] GlobalPool
-        - [ ] Flatten
-        - [ ] Upsample (1D and 2D)
+        - [ ] GlobalPool (Avg and Max)
+        - [ ] Upsample
+        
+        CNN Layers 2D:
+        - [x] Conv
+        - [x] Pool (Avg and Max)
+        - [x] GlobalPool (Avg and Max)
+        - [x] Upsample
+        
+        CNN Layers 3D: (optional)
+        - [ ] Conv
+        - [ ] Pool (Avg and Max)
+        - [ ] GlobalPool (Avg and Max)
+        - [ ] Upsample
+        
         Other Extra Functionality:
-        - [ ] Lambda
-        - [ ] Activation
-        - [ ] Add
-        - [ ] Concatenate
-        - [ ] Reshape
+        - [x] Flatten
+        - [x] Activation
+        - [x] Reshape
 
     - [x] Initializers
         - [x] Constant
@@ -136,31 +175,32 @@ example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsF
         - [x] PerceptronCriterionLoss
         - [x] SvmHingeLoss
 
-    - [ ] Evaluation Metrics
+    - [x] Evaluation Metrics
         - [x] Accuracy
-        - [ ] TP (True Positives)
-        - [ ] TN (True Negatives)
-        - [ ] FP (False Positives)
-        - [ ] FN (False Negatives)
-        - [ ] Precision
-        - [ ] Recall
-        - [ ] F1Score
+        - [x] TP (True Positives)
+        - [x] TN (True Negatives)
+        - [x] FP (False Positives)
+        - [x] FN (False Negatives)
+        - [x] Precision
+        - [x] Recall
+        - [x] F1Score
         
     - [ ] Regularizers
         - [x] L1
         - [x] L2
         - [ ] L1L2
 
-    - [ ] Optimization Modules for training
+    - [x] Optimization Modules for training
         - [x] SGD
-        - [ ] Momentum
-        - [ ] RMSProp
-        - [ ] Adam
+        - [x] Momentum
+        - [x] AdaGrad
+        - [x] RMSProp
+        - [x] AdaDelta
+        - [x] Adam
 
-    - [ ] A Visualization Modules to track the training and testing processes
+    - [x] A Visualization Modules to track the training and testing processes
         - [x] History
         - [x] Verbosity
-        - [ ] Something like TensorBoard? ...
 
     - [x] A utils module for reading and saving models
     - [ ] Adding CUDA support
@@ -169,10 +209,10 @@ example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsF
 ### Example Usage:
 - [ ] Download and Split a dataset (MNIST or CIFAR-10) to training, validation and testing
 - [ ] Construct an Architecture [(LeNet or AlexNet)](https://engmrk.com/lenet-5-a-classic-cnn-architecture/) and make sure all of its components are provided in your framework.
-    - [ ] Conv2D Layer
-    - [ ] AvgPool Layer
-    - [ ] Flatten Layer
+    - [x] Conv2D Layer
+    - [x] AvgPool Layer
+    - [x] Flatten Layer
     - [x] Dense (Fully Connected) Layer
-    - [ ] Softmax Activation Function
+    - [x] Softmax Activation Function
 - [ ] Train and test the model until a good accuracy is reached (Evaluation Metrics will need to be implemented in the framework also)
 - [x] Save the model into a compressed format

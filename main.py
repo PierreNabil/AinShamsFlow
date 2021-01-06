@@ -1,29 +1,40 @@
+"""Used to test all created objects."""
+
 import ainshamsflow as asf
 import numpy as np
-#TODO: Test what has been done thus far
 
-x = np.arange(10).reshape((1, -1))
-y = 2*x+1
+x = np.random.rand(5, 10, 10, 3)
+y = np.random.randint(0, 5, (5, 1))
+# print(x[0], y[0])
+print(x.shape, y.shape)
 
-print(x)
-print(y)
 
 model = asf.models.Sequential([
-	asf.layers.Dense(3, name='layer_1'),
-	asf.layers.Dense(1, name='layer_2')
-], 1, 'simple_model')
-
-model.compile(
-	optimizer=asf.optimizers.SGD(lr=0.02),
-	loss=asf.losses.MSE(),
-	metrics=[asf.losses.MAPE()],
-	regularizer=asf.regularizers.L2(1)
-)
+	asf.layers.Conv2D(5, 3, padding='same', activation='relu'),
+	asf.layers.Pool2D(2),
+	asf.layers.Flatten(),
+	asf.layers.Dense(100, activation='relu'),
+	asf.layers.Dense( 30, activation='relu'),
+	asf.layers.Dense(1)
+], input_shape=(10, 10, 3), name='my_model')
 
 model.print_summary()
 
-history = model.fit(x, y, 100, verbose=False)
+model.compile(
+	asf.optimizers.RMSProp(lr=0.0001),
+	asf.losses.MSE()
+)
+
+history = model.fit(x, y, 100)
+model.evaluate(x, y)
+model.evaluate(x, y)
+
 history.show()
-history.show()
-model.predict(x)
-model.evaluate(x, y, 3)
+
+
+# x_test = np.array([[1, 1, 1]])
+# y_test = np.array([[10]])
+#
+# print(model.predict(x_test))
+#
+# model.evaluate(x_test, y_test)
