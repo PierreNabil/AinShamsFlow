@@ -123,14 +123,18 @@ example usage can be found in [main.py](https://github.com/PierreNabil/AinShamsF
         - [x] Normal
         - [x] Identity
         
-    - [ ] Losses
+    - [x] Losses
         - [x] MSE  (Mean Squared Error)
-        - [ ] RMSE (Root Mean Squared Error)
         - [x] MAE  (Mean Absolute Error)
         - [x] MAPE (Mean Absolute Percentage Error)
-        - [ ] BinaryCrossentropy
-        - [ ] CategoricalCrossentropy
-        - [ ] SparseCategoricalCrossentropy
+        - [x] BinaryCrossentropy
+        - [x] CategoricalCrossentropy
+        - [x] SparseCategoricalCrossentropy
+        - [x] HuberLoss
+        - [x] LogLossLinearActivation
+        - [x] LogLossSigmoidActivation
+        - [x] PerceptronCriterionLoss
+        - [x] SvmHingeLoss
 
     - [ ] Evaluation Metrics
         - [x] Accuracy
