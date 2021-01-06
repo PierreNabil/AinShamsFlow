@@ -162,21 +162,20 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
         - [x] Normal
         - [x] Identity
         
-    - [ ] Losses
+    - [x] Losses
         - [x] MSE  (Mean Squared Error)
         - [x] MAE  (Mean Absolute Error)
         - [x] MAPE (Mean Absolute Percentage Error)
-        - [ ] BinaryCrossentropy
-        - [ ] CategoricalCrossentropy
-        - [ ] SparseCategoricalCrossentropy
-        - [ ] HuberLoss
-        - [ ] LogLossLinearActivation
-        - [ ] LogLossSigmoidActivation
-        - [ ] MultiClassification
-        - [ ] PreceptronCriterion
-        - [ ] SVMHinge
+        - [x] BinaryCrossentropy
+        - [x] CategoricalCrossentropy
+        - [x] SparseCategoricalCrossentropy
+        - [x] HuberLoss
+        - [x] LogLossLinearActivation
+        - [x] LogLossSigmoidActivation
+        - [x] PerceptronCriterionLoss
+        - [x] SvmHingeLoss
 
-    - [ ] Evaluation Metrics
+    - [x] Evaluation Metrics
         - [x] Accuracy
         - [x] TP (True Positives)
         - [x] TN (True Negatives)
@@ -202,7 +201,6 @@ A more elaborate example usage can be found in [main.py](https://github.com/Pier
     - [x] A Visualization Modules to track the training and testing processes
         - [x] History
         - [x] Verbosity
-        - [ ] Something like TensorBoard? (optional)
 
     - [x] A utils module for reading and saving models
     - [ ] Adding CUDA support
