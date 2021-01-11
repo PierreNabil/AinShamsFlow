@@ -42,12 +42,15 @@ class Dataset:
 		pass
 
 	def numpy(self):
-		pass
-
+		dataset=list()
+		for i in range(len(self.data)):
+                      dataset.append([self.data[i],self.target[i]])
+                return np.array(dataset)                                                                                                                                                      
+        
 	def batch(self,batch_size,drop_reminder=True):
 		i = 0
 		dt = list()
-		targ - list()
+		targ = list()
 		sz = len(self.data)
 		if drop_reminder==True:
 			sz-=sz%batch_size
@@ -163,37 +166,9 @@ class ImageDataGenerator(Dataset):
 
 
 if __name__ == '__main__':
-
-	# Create a dataset object
-	ds = Dataset()
-
-	# Range
-	ds.range(5, 10, 2)
-	for x in ds:
-		print(x)
-
-	# Cardinality
-	print(ds.cardinality())
-
-	# Initialize with lists
-	x = [[10, 10, 10], [20, 20, 20], [30, 30, 30], [40, 40, 40]]
-	y = [1, 2, 3, 4]
-
-	ds = Dataset(x, y)
-	for x, y in ds:
-		print(x, y)
-
-	# Shuffle
-	ds.shuffle()
-	for x, y in ds:
-		print(x, y)
-
-	# Split
-	x = np.random.randint(0, 9, (10, 3))
-	y = np.random.randint(0, 2, (10, 1))
-	ds = Dataset(x, y)
-	x_train, y_train, x_test, y_test = ds.split(split_percentage=0.3, shuffle=False)
-	print(x_train.shape)
-	print(y_train.shape)
-	print(x_test.shape)
-	print(y_test.shape)
+        ds = Dataset()
+        x = np.array([[1,3,2],[1,5,6],[8,1,9],[9,3,2],[9,8,1],[5,2,3],[7,1,5]])
+        y= np.array([1,3,1,2,3,4,5])
+        ds = Dataset(x,y)
+        ds.batch(3)
+        print(ds.numpy())
