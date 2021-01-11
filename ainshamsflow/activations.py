@@ -154,13 +154,23 @@ class Swish(Activation):
 
 class Softmax(Activation):
 	def __call__(self, z):
+		z = z - np.max(z, axis=-1, keepdims=True)
 		exp_z = np.exp(z)
 		s = np.sum(exp_z, axis=-1, keepdims=True)
-		return exp_z / s
+		ans = exp_z / s
+		ans = np.where(ans == 0, 1e-6, np.where(ans > 1 - 1e-6, 1 - 1e-6, ans))
+		return ans
 
 	def diff(self, z):
-		s = self.__call__(z)
-		return np.diagflat(s) - np.dot(s, np.transpose(s))
+		da = np.ones(z.shape)
+		m, n = z.shape
+		p = self.__call__(z)
+		tensor1 = np.einsum('ij,ik->ijk', p, p)  # (m, n, n)
+		tensor2 = np.einsum('ij,jk->ijk', p, np.eye(n, n))  # (m, n, n)
+		dz = tensor2 - tensor1
+		dz = np.einsum('ijk,ik->ij', dz, da)
+
+		return dz
 
 
 class HardTanh(Activation):

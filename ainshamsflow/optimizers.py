@@ -10,9 +10,6 @@ from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
 from ainshamsflow.utils.history import History
 
 
-# TODO: Add More Optimizers
-
-
 def get(opt_name):
     """Get any Optimizer in this Module by name."""
 

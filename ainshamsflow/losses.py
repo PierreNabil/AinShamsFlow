@@ -1,23 +1,23 @@
-import numpy as np
-from peras_errors import BaseClassError, NameNotFoundError
+"""Losses Module.
 
-""" Written by Ziad Tarek """
+In this Module we provide our loss functions for a variety of
+use cases like Mean Squared Error or Cross Entropy loss.
+"""
+
+import numpy as np
+from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
+from ainshamsflow.utils.utils import true_one_hot
 
 
 def get(loss_name):
     """Get any Loss in this module by name"""
-    losses = [MSE, MAE, MAPE, HuberLoss, LogLossLinearActivation, LogLossSigmoidActivation,
-              PerceptronCriterionLoss, SvmHingeLoss, BinaryCrossentropy, CategoricalCrossentropy,
+    losses = [MSE, MAE, MAPE, HuberLoss, LogLossLinear, LogLossSigmoid,
+              PerceptronCriterion, SvmHingeLoss, BinaryCrossentropy, CategoricalCrossentropy,
               SparseCategoricalCrossentropy]
     for loss in losses:
         if loss.__name__.lower() == loss_name.lower():
             return loss()
     raise NameNotFoundError(loss_name, __name__)
-
-
-def _one_hot(y_pred):
-    n_c = y_pred.shape[-1]
-    return np.squeeze(np.eye(n_c)[np.argmax(y_pred, axis=-1)])
 
 
 class Loss:
@@ -55,7 +55,7 @@ class MAE(Loss):
         return np.mean(np.abs(y_pred - y_true))
 
     def diff(self, y_pred, y_true):
-        m = y_true.shape[1]
+        m = y_true.shape[0]
         return np.sign(y_pred - y_true) / m
 
 
@@ -82,13 +82,13 @@ class MAPE(Loss):
         return np.mean(np.abs(y_pred - y_true) / y_true)
 
     def diff(self, y_pred, y_true):
-        m = y_true.shape[1]
+        m = y_true.shape[0]
         return np.where(y_pred > y_true, 1 / (m * y_true), -1 / (m * y_true))
 
 
-class LogLossLinearActivation(Loss):
+class LogLossLinear(Loss):
     """Logistic loss in case of identity(linear) activation function"""
-    __name__ = "LogLossLinearActivation"
+    __name__ = "LogLossLinear"
 
     def __call__(self, y_true, y_pred):
         return np.sum(np.log(1 + np.exp(-y_true * y_pred)))
@@ -97,8 +97,8 @@ class LogLossLinearActivation(Loss):
         return -y_true * np.exp(-y_true * y_pred) / (1 + np.exp(-y_true * y_pred))
 
 
-class LogLossSigmoidActivation(Loss):
-    __name__ = "LogLossSigmoidActivation"
+class LogLossSigmoid(Loss):
+    __name__ = "LogLossSigmoid"
 
     def __call__(self, y_pred, y_true):
         return -np.mean(np.log(np.abs(y_true / 2 - 0.5 + y_pred)))
@@ -108,8 +108,8 @@ class LogLossSigmoidActivation(Loss):
         return -np.sign(x) / np.abs(x)
 
 
-class PerceptronCriterionLoss(Loss):
-    __name__ = 'PerceptronCriterionLoss'
+class PerceptronCriterion(Loss):
+    __name__ = 'PerceptronCriterion'
 
     def __call__(self, y_true, y_pred):
         return np.maximum(0, -y_true * y_pred)
@@ -135,7 +135,7 @@ class BinaryCrossentropy(Loss):
         return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
 
     def diff(self, y_pred, y_true):
-        # m = y_true.shape[1]
+        # m = y_true.shape[0]
         # return -np.sum(((y_true / y_pred) - (1 - y_true / 1 - y_pred))) / m
         np.mean(y_pred - y_true, axis=0, keepdims=True)
 
@@ -144,19 +144,23 @@ class CategoricalCrossentropy(Loss):
     __name__ = 'CategoricalCrossentropy'
 
     def __call__(self, y_true, y_pred):
-        return -np.mean(y_true * np.log(y_pred))
+        return -np.mean(y_true * np.log(y_pred + 1e-6))
 
     def diff(self, y_pred, y_true):
-        m = y_true.shape[-1]
+        m = y_true.shape[0]
         return -(y_true / y_pred) / m
+
 
 class SparseCategoricalCrossentropy(Loss):
     __name__ = 'SparseCategoricalCrossentropy'
+
     def __call__(self, y_pred, y_true):
-        y_true = _one_hot(y_true)
-        return -np.mean(y_true * np.log(y_pred))
+        n_c = y_pred.shape[-1]
+        y_true = true_one_hot(y_true, n_c)
+        return -np.mean(y_true * np.log(y_pred + 1e-6))
 
     def diff(self, y_pred, y_true):
-        y_true = _one_hot(y_true)
-        m = y_true.shape[-1]
+        n_c = y_pred.shape[-1]
+        y_true = true_one_hot(y_true, n_c)
+        m = y_pred.shape[0]
         return -(y_true / y_pred) / m
