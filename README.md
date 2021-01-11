@@ -109,7 +109,7 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
         - [ ] \_\_init\_\_()
         - [ ] flow_from_directory()
 
-- [ ] A NN Module to design different architectures.
+- [x] A NN Module to design different architectures.
     - [x] Activation Functions
         - [x] Linear
         - [x] Sigmoid
@@ -206,12 +206,9 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
     - [ ] Publish to PyPI
 
 ### Example Usage:
-- [ ] Download and Split a dataset (MNIST or CIFAR-10) to training, validation and testing
-- [ ] Construct an Architecture [(LeNet or AlexNet)](https://engmrk.com/lenet-5-a-classic-cnn-architecture/) and make sure all of its components are provided in your framework.
-    - [x] Conv2D Layer
-    - [x] AvgPool Layer
-    - [x] Flatten Layer
-    - [x] Dense (Fully Connected) Layer
-    - [x] Softmax Activation Function
+- [x] Download and Split a dataset (MNIST or CIFAR-10) to training, validation and testing
+- [x] Construct an Architecture ([LeNet](https://engmrk.com/lenet-5-a-classic-cnn-architecture/) 
+or [AlexNet](https://dl.acm.org/doi/abs/10.1145/3065386)) and make sure all of its components are 
+provided in your framework.
 - [ ] Train and test the model until a good accuracy is reached (Evaluation Metrics will need to be implemented in the framework also)
-- [x] Save the model into a compressed format
+- [ ] Save the model into a compressed format

@@ -1,5 +1,7 @@
 """Utils module for miscellaneous helper functions."""
 
+import numpy as np
+
 
 def pred_one_hot(y_pred):
     n_c = y_pred.shape[-1]

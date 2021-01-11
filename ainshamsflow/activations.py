@@ -162,15 +162,15 @@ class Softmax(Activation):
 		return ans
 
 	def diff(self, z):
-		da = np.ones(z.shape)
-		m, n = z.shape
-		p = self.__call__(z)
-		tensor1 = np.einsum('ij,ik->ijk', p, p)  # (m, n, n)
-		tensor2 = np.einsum('ij,jk->ijk', p, np.eye(n, n))  # (m, n, n)
-		dz = tensor2 - tensor1
-		dz = np.einsum('ijk,ik->ij', dz, da)
-
-		return dz
+		# da = np.ones(z.shape)
+		# m, n = z.shape
+		# p = self.__call__(z)
+		# tensor1 = np.einsum('ij,ik->ijk', p, p)  # (m, n, n)
+		# tensor2 = np.einsum('ij,jk->ijk', p, np.eye(n, n))  # (m, n, n)
+		# dz = tensor2 - tensor1
+		# dz = np.einsum('ijk,ik->ij', dz, da)
+		# return dz
+		return 1
 
 
 class HardTanh(Activation):

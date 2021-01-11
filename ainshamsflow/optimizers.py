@@ -45,8 +45,8 @@ class Optimizer:
         rem_batch_size = m - batch_size * num_of_batches
         history = History(loss, metrics)
         if verbose:
-            print()
-            print()
+            # print()
+            # print()
             if training:
                 print('Training Model for {} epochs:'.format(epochs))
             else:
@@ -73,12 +73,14 @@ class Optimizer:
                 loss_values.append(loss_value)
                 metrics_values.append(metric_values)
             loss_values = np.array(loss_values).sum()
-            metrics_values = np.array(metrics_values).mean(axis=1)
+            metrics_values = np.array(metrics_values)
+            if metrics:
+                metric_values = metrics_values.mean(axis=1)
             history.add(loss_values, metrics_values)
             if verbose:
                 if training:
                     print(
-                        'Finished epoch number {:4d}:'.format(epoch_num),
+                        'Epoch #{:4d}:'.format(epoch_num+1),
                         '{}={:8.4f},'.format(loss.__name__, loss_values),
                         *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
                     )

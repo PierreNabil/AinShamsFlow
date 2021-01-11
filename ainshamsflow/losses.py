@@ -41,10 +41,12 @@ class MSE(Loss):
     __name__ = 'MSE'
 
     def __call__(self, y_pred, y_true):
-        return np.mean(np.square(y_pred - y_true)) / 2
+        m = y_pred.shape[0]
+        return np.sum(np.square(y_pred - y_true)) / (2*m)
 
     def diff(self, y_pred, y_true):
-        return np.mean(y_pred - y_true, axis=0, keepdims=True)
+        m = y_pred.shape[0]
+        return (y_pred - y_true) / m
 
 
 class MAE(Loss):
@@ -52,7 +54,8 @@ class MAE(Loss):
     __name__ = 'MAE'
 
     def __call__(self, y_pred, y_true):
-        return np.mean(np.abs(y_pred - y_true))
+        m = y_true.shape[0]
+        return np.sum(np.abs(y_pred - y_true)) / m
 
     def diff(self, y_pred, y_true):
         m = y_true.shape[0]
@@ -66,7 +69,7 @@ class HuberLoss(Loss):
     def __init__(self, delta=1.0):
         self.delta = delta
 
-    def __call__(self, y_true, y_pred):
+    def __call__(self, y_pred, y_true):
         return np.where(np.abs(y_pred - y_true) <= self.delta, 0.5 * np.square(y_pred - y_true),
                         (self.delta * np.abs(y_pred - y_true)) - 0.5 * np.square(self.delta))
 
@@ -79,7 +82,8 @@ class MAPE(Loss):
     __name__ = 'MAPE'
 
     def __call__(self, y_pred, y_true):
-        return np.mean(np.abs(y_pred - y_true) / y_true)
+        m = y_pred.sahpe[0]
+        return np.sum(np.abs(y_pred - y_true) / y_true) / m
 
     def diff(self, y_pred, y_true):
         m = y_true.shape[0]
@@ -90,7 +94,7 @@ class LogLossLinear(Loss):
     """Logistic loss in case of identity(linear) activation function"""
     __name__ = "LogLossLinear"
 
-    def __call__(self, y_true, y_pred):
+    def __call__(self, y_pred, y_true):
         return np.sum(np.log(1 + np.exp(-y_true * y_pred)))
 
     def diff(self, y_pred, y_true):
@@ -101,7 +105,8 @@ class LogLossSigmoid(Loss):
     __name__ = "LogLossSigmoid"
 
     def __call__(self, y_pred, y_true):
-        return -np.mean(np.log(np.abs(y_true / 2 - 0.5 + y_pred)))
+        m = y_pred.shape[0]
+        return -np.sum(np.log(np.abs(y_true / 2 - 0.5 + y_pred))) / m
 
     def diff(self, y_pred, y_true):
         x = y_true / 2 - 0.5 + y_pred
@@ -111,7 +116,7 @@ class LogLossSigmoid(Loss):
 class PerceptronCriterion(Loss):
     __name__ = 'PerceptronCriterion'
 
-    def __call__(self, y_true, y_pred):
+    def __call__(self, y_pred, y_true):
         return np.maximum(0, -y_true * y_pred)
 
     def diff(self, y_pred, y_true):
@@ -132,23 +137,23 @@ class BinaryCrossentropy(Loss):
     __name__ = 'BinaryCrossentropy'
 
     def __call__(self, y_pred, y_true):
-        return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+        m = y_pred.shape[0]
+        return -np.sum(np.where(y_true, np.log(y_pred), np.log(1 - y_pred))) / m
 
     def diff(self, y_pred, y_true):
-        # m = y_true.shape[0]
-        # return -np.sum(((y_true / y_pred) - (1 - y_true / 1 - y_pred))) / m
-        np.mean(y_pred - y_true, axis=0, keepdims=True)
+        m = y_pred.shape[0]
+        return (y_pred - y_true) / m
 
 
 class CategoricalCrossentropy(Loss):
     __name__ = 'CategoricalCrossentropy'
 
-    def __call__(self, y_true, y_pred):
-        return -np.mean(y_true * np.log(y_pred + 1e-6))
+    def __call__(self, y_pred, y_true):
+        return -np.mean(np.log(np.max(y_true * y_pred, axis=1) + 1e-6))
 
     def diff(self, y_pred, y_true):
         m = y_true.shape[0]
-        return -(y_true / y_pred) / m
+        return (y_pred - y_true) / m
 
 
 class SparseCategoricalCrossentropy(Loss):
@@ -157,10 +162,10 @@ class SparseCategoricalCrossentropy(Loss):
     def __call__(self, y_pred, y_true):
         n_c = y_pred.shape[-1]
         y_true = true_one_hot(y_true, n_c)
-        return -np.mean(y_true * np.log(y_pred + 1e-6))
+        return -np.mean(np.log(np.max(y_true * y_pred, axis=1) + 1e-6))
 
     def diff(self, y_pred, y_true):
+        m = y_pred.shape[0]
         n_c = y_pred.shape[-1]
         y_true = true_one_hot(y_true, n_c)
-        m = y_pred.shape[0]
-        return -(y_true / y_pred) / m
+        return (y_pred - y_true) / m
