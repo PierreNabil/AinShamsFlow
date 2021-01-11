@@ -67,11 +67,11 @@ class Model(_layers.Layer):
 		if metrics:
 			if not isinstance(metrics, list):
 				WrongObjectError(metrics, list())
-			for metric in metrics:
-				if isinstance(metric, str):
-					metric = _metrics.get(metric)
-				if not isinstance(metric, _metrics.Metric):
-					raise WrongObjectError(metric, _metrics.Metric())
+			for i in range(len(metrics)):
+				if isinstance(metrics[i], str):
+					metrics[i] = _metrics.get(metrics[i])
+				if not isinstance(metrics[i], _metrics.Metric):
+					raise WrongObjectError(metrics[i], _metrics.Metric())
 		else:
 			metrics = []
 

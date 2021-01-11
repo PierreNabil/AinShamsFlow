@@ -23,12 +23,11 @@ model.print_summary()
 
 model.compile(
 	asf.optimizers.AdaGrad(lr=0.1),
-	'SparseCategoricalCrossentropy'
-	# ['accuracy', 'f1score']
+	'SparseCategoricalCrossentropy',
+	['accuracy', 'precision', 'recall', 'f1score']
 )
 
-history = model.fit(x, y, 50)
-model.evaluate(x, y)
+history = model.fit(x, y, 50, 5)
 model.evaluate(x, y)
 
 history.show()
