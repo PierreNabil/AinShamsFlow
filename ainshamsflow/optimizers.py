@@ -72,23 +72,24 @@ class Optimizer:
                                                                    epochs*num_of_batches + 1)
                 loss_values.append(loss_value)
                 metrics_values.append(metric_values)
-            loss_values = np.array(loss_values).sum()
+            loss_value = np.array(loss_values).sum()
             metrics_values = np.array(metrics_values)
             if metrics:
-                metric_values = metrics_values.mean(axis=1)
-            history.add(loss_values, metrics_values)
+                metrics_values = metrics_values.mean(axis=0)
+            history.add(loss_value, metrics_values)
             if verbose:
                 if training:
                     print(
                         'Epoch #{:4d}:'.format(epoch_num+1),
-                        '{}={:8.4f},'.format(loss.__name__, loss_values),
-                        *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
+                        '{:s}={:8.4f},'.format(loss.__name__, loss_value),
+                        *['{}={:8.4f},'.format(metric.__name__, metrics_values[j])
+                            for j, metric in enumerate(metrics)]
                     )
                 else:
                     print(
-                        '{}={:8.4f},'.format(loss.__name__, loss_values),
-                        *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
-
+                        '{}={:8.4f},'.format(loss.__name__, loss_value),
+                        *['{}={:8.4f},'.format(metric.__name__, metrics_values[j])
+                            for j, metric in enumerate(metrics)]
                     )
 
         return history

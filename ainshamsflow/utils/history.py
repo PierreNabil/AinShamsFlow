@@ -20,6 +20,10 @@ class History:
 		self.loss_name = loss.__name__
 		self.metric_names = [metric.__name__ for metric in metrics]
 
+		if len(self.loss_name) > 12:
+			if self.loss_name[-12:] == 'Crossentropy':
+				self.loss_name = 'Crossentropy'
+
 	def add(self, loss_value, metric_values):
 		"""Add Values to the history of the training session."""
 
@@ -36,7 +40,7 @@ class History:
 
 		num_of_plots = len(self.metric_names) + 1 if show_metrics else 1
 
-		fig, axs = plt.subplots(num_of_plots, 1, squeeze=False)
+		fig, axs = plt.subplots(num_of_plots, 1, squeeze=False, figsize=(8, 3*num_of_plots))
 
 		# Loss Plots:
 		epochs = np.arange(len(self.loss_values)) + 1

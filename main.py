@@ -4,8 +4,8 @@ import ainshamsflow as asf
 import numpy as np
 
 
-x = np.random.rand(10000, 10, 10, 3)
-y = np.random.randint(0, 5, (10000, 1))
+x = np.random.rand(15, 10, 10, 3)
+y = np.random.randint(0, 5, (15, 1))
 # print(x[0,:,:,0], y[0])
 print(x.shape, y.shape)
 
@@ -23,11 +23,11 @@ model.print_summary()
 
 model.compile(
 	asf.optimizers.AdaGrad(lr=0.1),
-	asf.losses.SparseCategoricalCrossentropy()
+	'SparseCategoricalCrossentropy',
+	['accuracy', 'precision', 'recall', 'f1score']
 )
 
-history = model.fit(x, y, 50)
-model.evaluate(x, y)
+history = model.fit(x, y, 50, 5)
 model.evaluate(x, y)
 
 history.show()
