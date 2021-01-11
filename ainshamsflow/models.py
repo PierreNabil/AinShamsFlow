@@ -285,9 +285,12 @@ class Sequential(Model):
 			return np.sum([layer.count_params() for layer in self.layers])
 
 	def get_weights(self):
-		w_and_b = np.array([layer.get_weights() for layer in self.layers if layer.trainable])
-		weights = list(w_and_b[:, 0])
-		biases  = list(w_and_b[:, 1])
+		weights = []
+		biases  = []
+		for layer in self.layers:
+			w, b = layer.get_weights()
+			weights.append(w)
+			biases.append(b)
 		return weights, biases
 
 	def set_weights(self, weights, biases):

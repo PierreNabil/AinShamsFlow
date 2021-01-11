@@ -6,7 +6,7 @@ Stocastic Gradient Descent (SGD).
 
 import numpy as np
 
-from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
+from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
 from ainshamsflow.utils.history import History
 
 
@@ -19,6 +19,11 @@ def get(opt_name):
             return opt()
     else:
         raise NameNotFoundError(opt_name, __name__)
+
+
+def _check_dims(weights, dw):
+    if weights.shape != dw.shape:
+        raise UnsupportedShapeError(dw.shape, weights.shape)
 
 
 class Optimizer:
@@ -125,9 +130,6 @@ class Optimizer:
     def _update(self, i, weights, dw, layer_num, is_weight):
         raise BaseClassError
 
-#TODO: Add options for list:
-#	to be used for when a model is used as a layer
-
 
 class SGD(Optimizer):
     """Stochastic Gradient Descent Algorithm."""
@@ -136,8 +138,16 @@ class SGD(Optimizer):
 
     def _update(self, i, weights, dw, layer_num, is_weight):
         """Update step for SGD."""
-        assert np.shape(weights) == np.shape(dw)
-        return weights - self.lr * dw
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = '{}.{}'.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            return weights - self.lr * dw
 
 
 class Momentum(Optimizer):
@@ -151,16 +161,24 @@ class Momentum(Optimizer):
         self.momentum = {}
 
     def _update(self, i, weights, dw, layer_num, is_weight):
-        assert np.shape(weights) == np.shape(dw)
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = '{}.{}'.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
 
-        # check for first time:
-        layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
-        if layer_id not in self.momentum.keys():
-            self.momentum[layer_id] = np.zeros(weights.shape)
+            # check for first time:
+            layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
+            if layer_id not in self.momentum.keys():
+                self.momentum[layer_id] = np.zeros(weights.shape)
 
-        # update step
-        self.momentum[layer_id] = self.beta * self.momentum[layer_id] + (1 - self.beta) * dw
-        return weights - self.lr * self.momentum[layer_id]
+            # update step
+            self.momentum[layer_id] = self.beta * self.momentum[layer_id] + (1 - self.beta) * dw
+
+            return weights - self.lr * self.momentum[layer_id]
 
 
 class AdaGrad(Optimizer):
@@ -174,16 +192,24 @@ class AdaGrad(Optimizer):
         self.RMS = {}
 
     def _update(self, i, weights, dw, layer_num, is_weight):
-        assert np.shape(weights) == np.shape(dw)
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = '{}.{}'.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
 
-        # check for first time:
-        layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
-        if layer_id not in self.RMS.keys():
-            self.RMS[layer_id] = np.zeros(weights.shape)
+            # check for first time:
+            layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
+            if layer_id not in self.RMS.keys():
+                self.RMS[layer_id] = np.zeros(weights.shape)
 
-        # update step
-        self.RMS[layer_id] = self.RMS[layer_id] + np.square(dw)
-        return weights - self.lr * dw / (np.sqrt(self.RMS[layer_id]) + 1e-8)
+            # update step
+            self.RMS[layer_id] = self.RMS[layer_id] + np.square(dw)
+
+            return weights - self.lr * dw / (np.sqrt(self.RMS[layer_id]) + 1e-8)
 
 
 class AdaDelta(Optimizer):
@@ -197,16 +223,24 @@ class AdaDelta(Optimizer):
         self.delta = {}
 
     def _update(self, i, weights, dw, layer_num, is_weight):
-        assert np.shape(weights) == np.shape(dw)
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = '{}.{}'.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
 
-        # check for first time:
-        layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
-        if layer_id not in self.delta.keys():
-            self.delta[layer_id] = np.zeros(weights.shape)
+            # check for first time:
+            layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
+            if layer_id not in self.delta.keys():
+                self.delta[layer_id] = np.zeros(weights.shape)
 
-        # update step
-        self.delta[layer_id] = self.beta * self.delta[layer_id] + (1 - self.beta) * np.square(dw)
-        return weights - self.lr * dw / (np.sqrt(self.delta[layer_id]) + 1e-8)
+            # update step
+            self.delta[layer_id] = self.beta * self.delta[layer_id] + (1 - self.beta) * np.square(dw)
+
+            return weights - self.lr * dw / (np.sqrt(self.delta[layer_id]) + 1e-8)
 
 
 class RMSProp(Optimizer):
@@ -222,23 +256,31 @@ class RMSProp(Optimizer):
         self.RMS = {}
 
     def _update(self, i, weights, dw, layer_num, is_weight):
-        assert np.shape(weights) == np.shape(dw)
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = '{}.{}'.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
 
-        # check for first time:
-        layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
-        if layer_id not in self.stMoment.keys():
-            self.stMoment[layer_id] = np.zeros(weights.shape)
-        if layer_id not in self.ndMoment.keys():
-            self.ndMoment[layer_id] = np.zeros(weights.shape)
-        if layer_id not in self.RMS.keys():
-            self.RMS[layer_id] = np.zeros(weights.shape)
+            # check for first time:
+            layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
+            if layer_id not in self.stMoment.keys():
+                self.stMoment[layer_id] = np.zeros(weights.shape)
+            if layer_id not in self.ndMoment.keys():
+                self.ndMoment[layer_id] = np.zeros(weights.shape)
+            if layer_id not in self.RMS.keys():
+                self.RMS[layer_id] = np.zeros(weights.shape)
 
-        # update step
-        self.stMoment[layer_id] = self.beta * self.stMoment[layer_id] + (1 - self.beta) * dw
-        self.ndMoment[layer_id] = self.beta * self.ndMoment[layer_id] + (1 - self.beta) * np.square(dw)
-        self.RMS[layer_id] = self.beta * self.RMS[layer_id] + self.lr * dw / np.sqrt(self.ndMoment[layer_id] - np.square(self.stMoment[layer_id]) + 1e-8)
+            # update step
+            self.stMoment[layer_id] = self.beta * self.stMoment[layer_id] + (1 - self.beta) * dw
+            self.ndMoment[layer_id] = self.beta * self.ndMoment[layer_id] + (1 - self.beta) * np.square(dw)
+            self.RMS[layer_id] = self.beta * self.RMS[layer_id] + self.lr * dw / (
+                np.sqrt(self.ndMoment[layer_id] - np.square(self.stMoment[layer_id]) + 1e-8))
 
-        return weights - self.RMS[layer_id]
+            return weights - self.RMS[layer_id]
 
 
 class Adam(Optimizer):
@@ -254,18 +296,26 @@ class Adam(Optimizer):
         self.secMoment = {}
 
     def _update(self, i, weights, dw, layer_num, is_weight):
-        assert np.shape(weights) == np.shape(dw)
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = '{}.{}'.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
 
-        # check for first time:
-        layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
-        if layer_id not in self.secMoment.keys():
-            self.secMoment[layer_id] = np.zeros(weights.shape)
-        if layer_id not in self.momentum.keys():
-            self.momentum[layer_id] = np.zeros(weights.shape)
+            # check for first time:
+            layer_id = "{}{}".format(layer_num, 'w' if is_weight else 'b')
+            if layer_id not in self.secMoment.keys():
+                self.secMoment[layer_id] = np.zeros(weights.shape)
+            if layer_id not in self.momentum.keys():
+                self.momentum[layer_id] = np.zeros(weights.shape)
 
-        # update step
-        self.secMoment[layer_id] = (self.beta2 * self.secMoment[layer_id] + (1 - self.beta2) * np.square(dw)) / (
-                1 - np.power(self.beta2, i + 1))
-        self.momentum[layer_id] = (self.beta1 * self.momentum[layer_id] + (1 - self.beta1) * dw) / (
-                1 - np.power(self.beta1, i + 1))
-        return weights - self.lr * self.momentum[layer_id] / (np.sqrt(self.secMoment[layer_id]) + 1e-8)
+            # update step
+            self.secMoment[layer_id] = (self.beta2 * self.secMoment[layer_id] + (1 - self.beta2) * np.square(dw)) / (
+                    1 - np.power(self.beta2, i + 1))
+            self.momentum[layer_id] = (self.beta1 * self.momentum[layer_id] + (1 - self.beta1) * dw) / (
+                    1 - np.power(self.beta1, i + 1))
+
+            return weights - self.lr * self.momentum[layer_id] / (np.sqrt(self.secMoment[layer_id]) + 1e-8)
