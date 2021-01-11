@@ -10,10 +10,10 @@ import shelve
 from os.path import join as join_path
 import numpy as np
 
-from ainshamsflow.layers import Layer
-from ainshamsflow.optimizers import Optimizer
-from ainshamsflow.losses import Loss
-from ainshamsflow.metrics import Metric
+import ainshamsflow.layers as _layers
+import ainshamsflow.optimizers as optimizers
+import ainshamsflow.losses as losses
+import ainshamsflow.metrics as _metrics
 from ainshamsflow.utils.asf_errors import (UncompiledModelError, MultipleAccessError, BaseClassError,
 										   LayerNotFoundError, UnsupportedShapeError, WrongObjectError,
 										   InvalidShapeError)
@@ -27,7 +27,7 @@ def load_model(filename):
 	return model
 
 
-class Model(Layer):
+class Model(_layers.Layer):
 	"""Models Base Class."""
 
 	def __init__(self, input_shape, name, trainable=True):
@@ -54,17 +54,24 @@ class Model(Layer):
 
 	def compile(self, optimizer, loss, metrics=None, regularizer=None):
 		"""Define model optimizer, loss function , metrics and regularizer."""
+		if isinstance(optimizer, str):
+			optimizer = optimizers.get(optimizer)
+		if not isinstance(optimizer, optimizers.Optimizer):
+			raise WrongObjectError(optimizer, optimizers.Optimizer())
 
-		if not isinstance(optimizer, Optimizer):
-			raise WrongObjectError(optimizer, Optimizer())
-		if not isinstance(loss, Loss):
-			raise WrongObjectError(loss, Loss())
+		if isinstance(loss, str):
+			loss = losses.get(loss)
+		if not isinstance(loss, losses.Loss):
+			raise WrongObjectError(loss, losses.Loss())
+
 		if metrics:
 			if not isinstance(metrics, list):
 				WrongObjectError(metrics, list())
 			for metric in metrics:
-				if not isinstance(metric, Metric):
-					raise WrongObjectError(metric, Metric())
+				if isinstance(metric, str):
+					metric = _metrics.get(metric)
+				if not isinstance(metric, _metrics.Metric):
+					raise WrongObjectError(metric, _metrics.Metric())
 		else:
 			metrics = []
 
@@ -99,10 +106,10 @@ class Model(Layer):
 	def save_weights(self, filepath):
 		raise BaseClassError
 
-	def save_model(self, filepath=''):
+	def save_model(self, filename):
 		"""Saves model by its name in the directory specified."""
 
-		with shelve.open(join_path(filepath, self.name)) as db:
+		with shelve.open(filename) as db:
 			db['self'] = self
 
 	def print_summary(self):
@@ -124,8 +131,8 @@ class Sequential(Model):
 		if not isinstance(layers, list):
 			raise WrongObjectError(layers, list())
 		for layer in layers:
-			if not isinstance(layer, Layer):
-				raise WrongObjectError(layer, Layer())
+			if not isinstance(layer, _layers.Layer):
+				raise WrongObjectError(layer, _layers.Layer())
 		if not isinstance(input_shape, tuple):
 			raise WrongObjectError(input_shape, tuple())
 
@@ -170,8 +177,8 @@ class Sequential(Model):
 	def add_layer(self, layer):
 		"""Add a new layer to the network."""
 
-		if not isinstance(layer, Layer):
-			raise WrongObjectError(layer, Layer())
+		if not isinstance(layer, _layers.Layer):
+			raise WrongObjectError(layer, _layers.Layer())
 
 		if self.layers:
 			n_out = self.layers[-1].n_out
