@@ -11,18 +11,7 @@ from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
 def get(reg_name):
 	"""Get any Regularizer in this Module by name."""
 
-	regs = [L2, L1 ,L1_L2]
-	for reg in regs:
-		if reg.__name__.lower() == reg_name.lower():
-			return reg()
-	else:
-		raise NameNotFoundError(reg_name, __name__)
-
-
-def get(reg_name):
-	"""Get any Regularizer in this Module by name."""
-
-	regs = [L2, L1]
+	regs = [L2, L1, L1_L2]
 	for reg in regs:
 		if reg.__name__.lower() == reg_name.lower():
 			return reg()

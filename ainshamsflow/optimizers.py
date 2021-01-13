@@ -9,6 +9,8 @@ import numpy as np
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
 from ainshamsflow.utils.history import History
 
+#TODO: add steepest descent and Newton-Raphson optimizers
+
 
 def get(opt_name):
     """Get any Optimizer in this Module by name."""

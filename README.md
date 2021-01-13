@@ -193,10 +193,10 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
         - [x] Recall
         - [x] F1Score
         
-    - [ ] Regularizers
+    - [x] Regularizers
         - [x] L1
         - [x] L2
-        - [ ] L1L2
+        - [x] L1L2
 
     - [x] Optimization Modules for training
         - [x] SGD
