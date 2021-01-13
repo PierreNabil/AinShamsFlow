@@ -52,3 +52,8 @@ class LayerNotFoundError(ASFError):
 			return 'Layer {} not found.'.format(self.name)
 		else:
 			return 'Layer indexed {} not found.'.format(self.name)
+
+
+class UninitializedDatasetError(ASFError):
+	def __str__(self):
+		return 'Using an uninitialized dataset is invalid.'
