@@ -1,41 +1,30 @@
-"""Data Module.
-
-In this Module, we include our dataset handling classes. These include a general purpose Dataset class
-and a ImageDataGenerator Class that is more specific to dealing with Images inside directories.
-"""
-
 import numpy as np
-import matplotlib.image as mpimg
-import os
-
-from ainshamsflow.utils.asf_errors import UnsupportedShapeError, UninitializedDatasetError
 
 
 class Dataset:
 	def __init__(self, x=None, y=None):
-		self.data = None
-		self.target = None
 		if x is not None:
 			self.data = np.array(x)
+		else:
+			self.data = None
+
 		if y is not None:
 			self.target = np.array(y)
-		if x is not None and y is not None:
-			if x.shape[0] != y.shape[0]:
-				raise UnsupportedShapeError(x.shape[0], y.shape[0])
+		else:
+			self.target = None
 
 	def __bool__(self):
-		return self.data is not None
+		return self.data is not None and self.target is not None
 
 	def __len__(self):
 		return self.cardinality()
 
 	def __iter__(self):
-		if self.data is None:
-			raise UninitializedDatasetError
 		self.index = 0
 		return self
 
 	def __next__(self):
+		assert self.data is not None
 		if self.index >= self.data.shape[0]:
 			raise StopIteration
 
@@ -53,8 +42,8 @@ class Dataset:
 	def copy(self):
 		""" Returns a copy of the dataset """
 		dataset_copy = Dataset()
-		dataset_copy.data = self.data
-		dataset_copy.target = self.target
+		dataset_copy.data = np.copy(self.data)
+		dataset_copy.target = np.copy(self.target)
 		return dataset_copy
 
 	def apply(self, transformation):
@@ -63,30 +52,38 @@ class Dataset:
 	def batch(self, batch_size, drop_remainder=False):
 		
 		""" 
-			Divides the dataset into equal parts.
+			Divides the dataset into equal parts of size equals batch_size.
+			(Modifies self.data and self.target to be a list of arrays rather than numpy arrays)
 
 			Inputs:
 				- batch_size:		(int)
 				- drop_remainder:	(bool)
 
 			Returns:
-				- (list of ndarrays) dividing the self.data into sub-arrays
+				- self
 		"""
-		if self.data is None:
-			raise UninitializedDatasetError
+
+		m = self.cardinality()
 
 		if drop_remainder:
-			return np.split(self.data[:-(self.cardinality() % batch_size)], batch_size)
+			self.data = np.split(self.data[:-(m % batch_size)], batch_size)
+			self.target = np.split(self.target[:-(m % batch_size)], batch_size)
 		else:
-			batches = np.split(self.data[:-(self.cardinality() % batch_size)], batch_size)
-			remainder = np.array(self.data[-(self.cardinality() % batch_size):])
-			batches.append(remainder)
-			return batches
+			data_batches = np.split(self.data[:-(m % batch_size)], batch_size)
+			data_remainder = self.data[-(m % batch_size):]
+			data_batches.append(data_remainder)
+
+			target_batches = np.split(self.target[:-(m % batch_size)], batch_size)
+			target_remainder = self.target[-(m % batch_size):]
+			target_batches.append(target_remainder)
+
+			self.data = data_batches
+			self.target = target_batches
+		return self
 
 	def cardinality(self):
 		""" Returns the number of data points in the dataset """
-		if self.data is None:
-			raise UninitializedDatasetError
+		assert self.data is not None
 		return self.data.shape[0]
 
 	def concatenate(self, ds_list):
@@ -99,22 +96,17 @@ class Dataset:
 			Returns:
 				- A new concatenated dataset.
 		"""
-		if self.data is None:
-			raise UninitializedDatasetError
-
-		return Dataset(x=np.concatenate((self.data, *[ds.data for ds in ds_list])))
+		self.data = np.concatenate((self.data, *[ds.data for ds in ds_list]))
+		return self
 
 	def enumerate(self):
-		if self.data is None:
-			raise UninitializedDatasetError
 		enum = []
 		for i in range(self.cardinality()):
 			enum.append([i, self.data[i]])
-		return np.array(enum)
+		self.data = np.array(enum)
+		return self
 
 	def filter(self, function):
-		if self.data is None:
-			raise UninitializedDatasetError
 		new_data = []
 		for x in self.data:
 			if function(x):
@@ -123,8 +115,6 @@ class Dataset:
 		return self
 
 	def map(self, function):
-		if self.data is None:
-			raise UninitializedDatasetError
 		new_data = []
 		for element in self.data:
 			new_data.append(function(element))
@@ -138,13 +128,15 @@ class Dataset:
 	def shuffle(self):
 		""" Arrays shuffled in-place by their first dimension - self returned """
 
-		if self.data is None:
-			raise UninitializedDatasetError
+		assert self.data is not None
 
 		# Generate random seed
 		seed = np.random.randint(0, 2 ** (32 - 1) - 1)
 
 		if self.target is not None:
+			# Ensure self.data and self.target have the same length along their first dimension
+			assert self.data.shape[0] == self.target.shape[0]
+
 			# Shuffle both arrays in-place using the same seed
 			for array in [self.data, self.target]:
 				# Generate random state object
@@ -172,8 +164,7 @@ class Dataset:
 				- If the dataset was initialized with x and y:	returns x_train, y_train, x_test, y_test
 		"""
 
-		if self.data is None:
-			raise UninitializedDatasetError
+		assert self.data is not None
 		holdout = int(split_percentage * self.data.shape[0])
 		if shuffle:
 			self.shuffle()
@@ -184,78 +175,23 @@ class Dataset:
 		if self.target is not None:
 			y_test = self.target[:holdout]
 			y_train = self.target[holdout:]
-			return x_train, y_train, x_test, y_test
-		return x_train, x_test
+		else:
+			y_train = None
+			y_test = None
+
+		return Dataset(x=x_train, y=y_train), Dataset(x=x_test, y=y_test)
 
 	def take(self, limit):
-		if self.data is None:
-			raise UninitializedDatasetError
-		return self.data[:limit]
-
-	def skip(self, limit):
-		if self.data is None:
-			raise UninitializedDatasetError
-		return self.data[limit:]
+		self.data = self.data[:limit]
+		return self
 
 
 class ImageDataGenerator(Dataset):
-	"""Image Data Generator Class.
-
-	This class helps in training large amounts of images with minimal memory allocation.
-	"""
 	def __init__(self):
-		self.class_name = []
-		self.dir = None
-		super().__init__()
+		pass
 
 	def flow_from_directory(self, directory):
-		"""Reads Images from a Directory.
-
-		If directory holds images only, this function will use these images as a dataset without any labels.
-		Otherwise, if the directory holds folders of images, it will store the folder names as class names in
-		the class_names attribute. It will then label the images according to their folders.
-		"""
-		self.dir = directory
-		self.class_name = [name for name in os.listdir(directory)
-						   if os.path.isdir(os.path.join(directory, name))]
-		if class_name:
-			images = []
-			labels = []
-			for i in range(len(self.class_name)):
-				for img_name in os.listdir(self.class_name[i]):
-					if os.path.isfile(os.path.join(directory, self.class_name[i], img_name)):
-						images.append(img_name)
-						labels.append(i)
-			self.data = np.array(images)
-			self.target = np.array(labels)
-		else:
-			images = [img_name for img_name in os.listdir(directory)
-					   if os.path.isfile(os.path.join(directory, img_name))]
-			self.data = np.array(images)
-
-		self.shuffle()
-		return self
-
-	def __next__(self):
-		if self.index >= self.data.shape[0]:
-			raise StopIteration
-		self.index += 1
-		img = self._extract_img(self.data[self.index-1], self.target[self.index-1])
-		if self.target is not None:
-			label = self.target[self.index-1]
-			return img, label
-		else:
-			return img
-
-	def _extract_img(self, filename, label):
-		if isinstance(filename, str):
-			ans = mpimg.imread(os.path.join(self.dir, self.class_name[label], filename))
-		else:
-			ans = []
-			for file, lab in zip(filename, label):
-				ans.append(self._extract_img(file, lab))
-			ans = np.array(ans)
-		return ans
+		pass
 
 
 if __name__ == '__main__':
@@ -289,7 +225,7 @@ if __name__ == '__main__':
 	x = np.random.randint(0, 9, (10, 3))
 	y = np.random.randint(0, 2, (10, 1))
 	ds = Dataset(x, y)
-	x_train, y_train, x_test, y_test = ds.split(split_percentage=0.3, shuffle=False)
+	ds_train, ds_test = ds.split(split_percentage=0.3, shuffle=False)
 
 	# Copy
 	ds_copy = ds.copy()
@@ -312,4 +248,19 @@ if __name__ == '__main__':
 	print(ds.data)
 
 	# Take
-	print(ds.take(2))
+	ds.take(2)
+
+	# Batch
+	#x = [[10, 10, 10], [20, 20, 20], [30, 30, 30], [40, 40, 40]]
+	x = [i for i in range(5)]
+	y = [1, 2, 3, 4, 5]
+	ds = Dataset(x=x, y=y)
+
+	print(ds.data)
+	print(ds.target)
+	ds.batch(2)
+	print(ds.data)
+	print(ds.target)
+
+
+
