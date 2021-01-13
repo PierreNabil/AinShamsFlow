@@ -1,9 +1,12 @@
 # AinShamsFlow
 4th CSE Neural Networks Project.
 
+![asf_logo](/images/asf_logo.png)
+
 ## Contents:
 * [Project Description](#Project-Description)
 * [Project Structure](#Project-Structure)
+* [install](#Install)
 * [Usage](#Usage)
 * [Team Members](#Team-Members)
 * [Todo](#Todo)
@@ -22,40 +25,46 @@ This is how the Design Structure should work in our Framework.
 
 ![Desgin Structure](/images/Design%20Structure.png)
 
+##Install:
+You can install the latest available version as follows:
+```shell
+$ pip install ainshamsflow
+```
+
 ## Usage:
 you start using this project my importing the package as follows:
 
 ```python
-import ainshamsflow as asf
+>>> import ainshamsflow as asf
 ```
 
 then you can start creating a model:
 
 ```python
-model = asf.models.Sequential([
-	asf.layers.Dense(30, activation="relu"),
-	asf.layers.Dense(10, activation="relu"),
-	asf.layers.Dense( 1, activation="relu")
-], input_shape=(100,), name='my_model')
-model.print_summary()
+>>> model = asf.models.Sequential([
+... 	asf.layers.Dense(30, activation="relu"),
+...    asf.layers.Dense(10, activation="relu"),
+...    asf.layers.Dense( 1, activation="relu")
+... ], input_shape=(100,), name="my_model")
+>>> model.print_summary()
 ```
 
 then compile and train the model:
 
 ```python
-model.compile(
-	optimizer=asf.optimizers.SGD(),
-	loss=asf.losses.MSE()
-)
-history = model.fit(X, y, epochs=100)
+>>> model.compile(
+... 	optimizer=asf.optimizers.SGD(),
+... 	loss=asf.losses.MSE()
+... )
+>>> history = model.fit(X, y, epochs=100)
 ```
 
 finally you can evaluate, predict and show training statistics:
 
 ```python
-model.evaluate(X, y)
-y_pred = model.predict(X_val)
-history.show()
+>>> model.evaluate(X, y)
+>>> y_pred = model.predict(X_val)
+>>> history.show()
 ```
 
 
