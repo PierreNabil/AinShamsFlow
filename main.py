@@ -31,7 +31,7 @@ model.compile(
 	asf.optimizers.AdaGrad(lr=0.1),
 	'SparseCategoricalCrossentropy',
 	['accuracy', 'precision', 'recall', 'f1score'],
-	asf.regularizers.L1()
+	'l1'
 )
 
 history = model.fit(x, y, 50, 5)

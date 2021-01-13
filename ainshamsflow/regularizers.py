@@ -15,7 +15,7 @@ def get(reg_name):
 	regs = [L2, L1]
 	for reg in regs:
 		if reg.__name__.lower() == reg_name.lower():
-			return reg
+			return reg()
 	else:
 		raise NameNotFoundError(reg_name, __name__)
 
