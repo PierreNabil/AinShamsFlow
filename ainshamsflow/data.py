@@ -193,12 +193,12 @@ class Dataset:
 		if shuffle:
 			self.shuffle()
 
-		x_test = self.data[:holdout]
-		x_train = self.data[holdout:]
+		x_test = self.data[holdout:]
+		x_train = self.data[:holdout]
 
 		if self.target is not None:
-			y_test = self.target[:holdout]
-			y_train = self.target[holdout:]
+			y_test = self.target[holdout:]
+			y_train = self.target[:holdout]
 		else:
 			y_train = None
 			y_test = None
@@ -215,7 +215,8 @@ class Dataset:
 	def skip(self, limit):
 		if self.data is None:
 			raise UninitializedDatasetError
-		return self.data[limit:]
+		self.data = self.data[limit:]
+		return self
 
 
 class ImageDataGenerator(Dataset):
@@ -276,6 +277,51 @@ class ImageDataGenerator(Dataset):
 				ans.append(self._extract_img(file, lab))
 			ans = np.array(ans)
 		return ans
+	
+	def copy(self):
+		""" Returns a copy of the dataset """
+		dataset_copy = ImageDataGenerator()
+		dataset_copy.data = np.copy(self.data)
+		dataset_copy.target = np.copy(self.target)
+		dataset_copy.dir = self.dir
+		dataset_copy.class_name = self.class_name[:]
+		return dataset_copy
+	
+	def split(self, split_percentage, shuffle=False):
+
+		"""
+		Splits the dataset into 2 batches (training and testing/validation)
+
+			Inputs:
+				- split_percentage: (float) percentage of the testing/validation data points
+				- shuffle:			(bool)	if true, the data is shuffled before the split
+
+			Returns (as numpy arrays):
+				- If the dataset was initialized with x only:	returns x_train, x_test
+				- If the dataset was initialized with x and y:	returns x_train, y_train, x_test, y_test
+		"""
+
+		if self.data is None:
+			raise UninitializedDatasetError
+		img_gen_train = ImageDataGenerator()
+		img_gen_test = ImageDataGenerator()
+		
+		img_gen_train.dir = img_gen_test.dir = self.dir
+		img_gen_train.class_name = self.class_name[:]
+		img_gen_test.class_name = self.class_name[:]
+		
+		holdout = int(split_percentage * self.data.shape[0])
+		if shuffle:
+			self.shuffle()
+
+		img_gen_train.data = self.data[:holdout]
+		img_gen_test.data = self.data[holdout:]
+
+		if self.target is not None:
+			img_gen_train.target = self.target[:holdout]
+			img_gen_test.target = self.target[holdout:]
+
+		return img_gen_train, img_gen_test
 
 
 if __name__ == '__main__':
