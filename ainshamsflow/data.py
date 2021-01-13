@@ -13,14 +13,11 @@ class Dataset:
 		else:
 			self.target = None
 
-	def __str__(self):
-		pass
-
 	def __bool__(self):
-		pass
+		return self.data is not None and self.target is not None
 
 	def __len__(self):
-		pass
+		return self.cardinality()
 
 	def __iter__(self):
 		self.index = 0
@@ -42,40 +39,81 @@ class Dataset:
 			self.index += 1
 			return x
 
+	def copy(self):
+		""" Returns a copy of the dataset """
+		dataset_copy = Dataset()
+		dataset_copy.data = self.data
+		dataset_copy.target = self.target
+		return dataset_copy
+
 	def apply(self, transformation):
-		pass
+		return transformation(self)
 
-	def numpy(self):
-		pass
+	def batch(self, batch_size, drop_remainder=False):
+		
+		""" 
+			Divides the dataset into equal parts.
 
-	def batch(self):
-		pass
+			Inputs:
+				- batch_size:		(int)
+				- drop_remainder:	(bool)
+
+			Returns:
+				- (list of ndarrays) dividing the self.data into sub-arrays
+		"""
+
+		if drop_remainder:
+			return np.split(self.data[:-(self.cardinality() % batch_size)], batch_size)
+		else:
+			batches = np.split(self.data[:-(self.cardinality() % batch_size)], batch_size)
+			remainder = np.array(self.data[-(self.cardinality() % batch_size):])
+			batches.append(remainder)
+			return batches
 
 	def cardinality(self):
 		""" Returns the number of data points in the dataset """
 		assert self.data is not None
 		return self.data.shape[0]
 
-	def concatenate(self):
-		pass
+	def concatenate(self, ds_list):
+		"""
+			Creates a Dataset by concatenating the given dataset with this dataset.
+
+			Inputs:
+				- ds_list: (list) of the datasets to be concatenated
+
+			Returns:
+				- A new concatenated dataset.
+		"""
+		return Dataset(x=np.concatenate((self.data, *[ds.data for ds in ds_list])))
 
 	def enumerate(self):
-		pass
+		enum = []
+		for i in range(self.cardinality()):
+			enum.append([i, self.data[i]])
+		return np.array(enum)
 
-	def filter(self):
-		pass
+	def filter(self, function):
+		new_data = []
+		for x in self.data:
+			if function(x):
+				new_data.append(x)
+		self.data = np.array(new_data)
+		return self
 
-	def map(self):
-		pass
+	def map(self, function):
+		new_data = []
+		for element in self.data:
+			new_data.append(function(element))
+		self.data = np.array(new_data)
+		return self
 
 	def range(self, *args):
 		self.data = np.arange(*args)
-
-	def reduce(self):
-		pass
+		return self
 
 	def shuffle(self):
-		""" Arrays shuffled in-place by their first dimension - nothing returned """
+		""" Arrays shuffled in-place by their first dimension - self returned """
 
 		assert self.data is not None
 
@@ -97,8 +135,7 @@ class Dataset:
 			r_state = np.random.RandomState(seed)
 			r_state.shuffle(self.data)
 
-	def skip(self):
-		pass
+		return self
 
 	def split(self, split_percentage, shuffle=False):
 
@@ -128,14 +165,8 @@ class Dataset:
 			return x_train, y_train, x_test, y_test
 		return x_train, x_test
 
-	def take(self):
-		pass
-
-	def unbatch(self):
-		pass
-
-	def zip(self):
-		pass
+	def take(self, limit):
+		return self.data[:limit]
 
 
 class ImageDataGenerator(Dataset):
@@ -168,6 +199,7 @@ if __name__ == '__main__':
 		print(x, y)
 
 	# Shuffle
+	print()
 	ds.shuffle()
 	for x, y in ds:
 		print(x, y)
@@ -177,7 +209,26 @@ if __name__ == '__main__':
 	y = np.random.randint(0, 2, (10, 1))
 	ds = Dataset(x, y)
 	x_train, y_train, x_test, y_test = ds.split(split_percentage=0.3, shuffle=False)
-	print(x_train.shape)
-	print(y_train.shape)
-	print(x_test.shape)
-	print(y_test.shape)
+
+	# Copy
+	ds_copy = ds.copy()
+
+	# Filter
+	ds = Dataset()
+	ds.range(10)
+
+	def filter_function(x):
+		return x > 5
+
+	print(ds.data)
+	ds.filter(filter_function)
+	print(ds.data)
+
+	# Map
+	def map_function(x):
+		return x + 10
+	ds.map(map_function)
+	print(ds.data)
+
+	# Take
+	print(ds.take(2))
