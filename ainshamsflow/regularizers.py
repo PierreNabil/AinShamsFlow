@@ -32,7 +32,7 @@ class Regularizer:
 	the __call__() and diff() methods.
 	"""
 
-	def __init__(self, lambd):
+	def __init__(self, lambd=0.01):
 		"""Initialize Lambda."""
 
 		self.lambd = lambd
@@ -50,10 +50,22 @@ class L2(Regularizer):
 	__name__ = 'L2'
 
 	def __call__(self, weights_list, m):
-		return self.lambd * np.sum(np.square(weights_list)) / (2*m)
+		if isinstance(weights_list, list):
+			ans = 0
+			for weights in weights_list:
+				ans += self.__call__(weights, m)
+			return ans
+		else:
+			return self.lambd * np.sum(np.square(weights_list)) / (2*m)
 
 	def diff(self, weights_list, m):
-		return self.lambd * np.divide(weights_list, m)
+		if isinstance(weights_list, list):
+			ans = []
+			for weights in weights_list:
+				ans.append(self.diff(weights, m))
+			return ans
+		else:
+			return self.lambd * np.divide(weights_list, m)
 
 
 class L1(Regularizer):
@@ -62,7 +74,19 @@ class L1(Regularizer):
 	__name__ = 'L1'
 
 	def __call__(self, weights_list, m):
-		return self.lambd * np.sum(np.abs(weights_list)) / m
+		if isinstance(weights_list, list):
+			ans = 0
+			for weights in weights_list:
+				ans += self.__call__(weights, m)
+			return ans
+		else:
+			return self.lambd * np.sum(np.abs(weights_list)) / m
 
 	def diff(self, weights_list, m):
-		return self.lambd * np.divide(np.where(weights_list > 0, 1, -1), m)
+		if isinstance(weights_list, list):
+			ans = []
+			for weights in weights_list:
+				ans.append(self.diff(weights, m))
+			return ans
+		else:
+			return self.lambd * np.divide(np.where(weights_list > 0, 1, -1), m)

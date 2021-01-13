@@ -120,7 +120,7 @@ class Optimizer:
                 da, dw, db = layers[j].diff(da)
                 if layers[j].trainable:
                     if regularization_diff is not None:
-                        dw += regularization_diff[j]
+                        dw = self._add_reg_diff(dw, regularization_diff[j])
                     weights, biases = layers[j].get_weights()
                     updated_weights = self._update(i, weights, dw, layer_num=j, is_weight=True)
                     updated_biases = self._update(i, biases, db, layer_num=j, is_weight=False)
@@ -129,6 +129,16 @@ class Optimizer:
 
     def _update(self, i, weights, dw, layer_num, is_weight):
         raise BaseClassError
+
+    def _add_reg_diff(self, dw, reg_diff):
+        if isinstance(dw, list) and isinstance(reg_diff, list):
+            dw_new = []
+            for single_dw, single_reg_diff in zip(dw, reg_diff):
+                single_dw = self._add_reg_diff(single_dw, single_reg_diff)
+                dw_new.append(single_dw)
+        else:
+            dw_new = dw + reg_diff
+        return dw_new
 
 
 class SGD(Optimizer):

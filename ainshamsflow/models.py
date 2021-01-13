@@ -14,6 +14,7 @@ import ainshamsflow.layers as _layers
 import ainshamsflow.optimizers as optimizers
 import ainshamsflow.losses as losses
 import ainshamsflow.metrics as _metrics
+import ainshamsflow.regularizers as regularizers
 from ainshamsflow.utils.asf_errors import (UncompiledModelError, MultipleAccessError, BaseClassError,
 										   LayerNotFoundError, UnsupportedShapeError, WrongObjectError,
 										   InvalidShapeError)
@@ -66,7 +67,7 @@ class Model(_layers.Layer):
 
 		if metrics:
 			if not isinstance(metrics, list):
-				WrongObjectError(metrics, list())
+				raise WrongObjectError(metrics, list())
 			for i in range(len(metrics)):
 				if isinstance(metrics[i], str):
 					metrics[i] = _metrics.get(metrics[i])
@@ -74,6 +75,13 @@ class Model(_layers.Layer):
 					raise WrongObjectError(metrics[i], _metrics.Metric())
 		else:
 			metrics = []
+
+		if regularizer is not None:
+			if isinstance(regularizer, str):
+				regularizer = regularizers.get(regularizer)
+			if not isinstance(regularizer, regularizers.Regularizer):
+				raise WrongObjectError(regularizer, regularizers.Regularizer())
+
 
 		self.optimizer = optimizer
 		self.loss = loss
@@ -266,9 +274,8 @@ class Sequential(Model):
 
 		for layer in reversed(self.layers):
 			da, dw, db = layer.diff(da)
-			if layer.trainable:
-				Dw.insert(0, dw)
-				Db.insert(0, db)
+			Dw.insert(0, dw)
+			Db.insert(0, db)
 
 		return da, Dw, Db
 
