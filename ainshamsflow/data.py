@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.image as mpimg
+import os
 
 
 class Dataset:
@@ -171,10 +173,53 @@ class Dataset:
 
 class ImageDataGenerator(Dataset):
 	def __init__(self):
-		pass
+		self.class_name = []
+		self.dir = None
+		super().__init__()
 
 	def flow_from_directory(self, directory):
-		pass
+		self.dir = directory
+		self.class_name = [name for name in os.listdir(directory)
+						   if os.path.isdir(os.path.join(directory, name))]
+		if class_name:
+			images = []
+			labels = []
+			for i in range(len(self.class_name)):
+				for img_name in os.listdir(self.class_name[i]):
+					if os.path.isfile(os.path.join(directory, self.class_name[i], img_name)):
+						images.append(img_name)
+						labels.append(i)
+			self.data = np.array(images)
+			self.target = np.array(labels)
+		else:
+			images = [img_name for img_name in os.listdir(directory)
+					   if os.path.isfile(os.path.join(directory, img_name))]
+			self.data = np.array(images)
+
+		self.shuffle()
+		return self
+
+	def __next__(self):
+		assert self.data is not None
+		if self.index >= self.data.shape[0]:
+			raise StopIteration
+		self.index += 1
+		img = self._extract_img(self.data[self.index-1], self.target[self.index-1])
+		if self.target is not None:
+			label = self.target[self.index-1]
+			return img, label
+		else:
+			return img
+
+	def _extract_img(self, filename, label):
+		if isinstance(filename, str):
+			ans = mpimg.imread(os.path.join(self.dir, self.class_name[label], filename))
+		else:
+			ans = []
+			for file, lab in zip(filename, label):
+				ans.append(self._extract_img(file, lab))
+			ans = np.array(ans)
+		return ans
 
 
 if __name__ == '__main__':
