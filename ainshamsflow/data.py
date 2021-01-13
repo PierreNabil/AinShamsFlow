@@ -53,8 +53,8 @@ class Dataset:
 	def copy(self):
 		""" Returns a copy of the dataset """
 		dataset_copy = Dataset()
-		dataset_copy.data = self.data
-		dataset_copy.target = self.target
+		dataset_copy.data = np.copy(self.data)
+		dataset_copy.target = np.copy(self.target)
 		return dataset_copy
 
 	def apply(self, transformation):
@@ -63,25 +63,36 @@ class Dataset:
 	def batch(self, batch_size, drop_remainder=False):
 		
 		""" 
-			Divides the dataset into equal parts.
+			Divides the dataset into equal parts of size equals batch_size.
+			(Modifies self.data and self.target to be a list of arrays rather than numpy arrays)
 
 			Inputs:
 				- batch_size:		(int)
 				- drop_remainder:	(bool)
 
 			Returns:
-				- (list of ndarrays) dividing the self.data into sub-arrays
+				- self
 		"""
 		if self.data is None:
 			raise UninitializedDatasetError
 
+		m = self.cardinality()
+
 		if drop_remainder:
-			return np.split(self.data[:-(self.cardinality() % batch_size)], batch_size)
+			self.data = np.split(self.data[:-(m % batch_size)], batch_size)
+			self.target = np.split(self.target[:-(m % batch_size)], batch_size)
 		else:
-			batches = np.split(self.data[:-(self.cardinality() % batch_size)], batch_size)
-			remainder = np.array(self.data[-(self.cardinality() % batch_size):])
-			batches.append(remainder)
-			return batches
+			data_batches = np.split(self.data[:-(m % batch_size)], batch_size)
+			data_remainder = self.data[-(m % batch_size):]
+			data_batches.append(data_remainder)
+
+			target_batches = np.split(self.target[:-(m % batch_size)], batch_size)
+			target_remainder = self.target[-(m % batch_size):]
+			target_batches.append(target_remainder)
+
+			self.data = data_batches
+			self.target = target_batches
+		return self
 
 	def cardinality(self):
 		""" Returns the number of data points in the dataset """
@@ -99,10 +110,13 @@ class Dataset:
 			Returns:
 				- A new concatenated dataset.
 		"""
+
 		if self.data is None:
 			raise UninitializedDatasetError
 
-		return Dataset(x=np.concatenate((self.data, *[ds.data for ds in ds_list])))
+		self.data = np.concatenate((self.data, *[ds.data for ds in ds_list]))
+		return self
+
 
 	def enumerate(self):
 		if self.data is None:
@@ -110,7 +124,8 @@ class Dataset:
 		enum = []
 		for i in range(self.cardinality()):
 			enum.append([i, self.data[i]])
-		return np.array(enum)
+		self.data = np.array(enum)
+		return self
 
 	def filter(self, function):
 		if self.data is None:
@@ -184,13 +199,18 @@ class Dataset:
 		if self.target is not None:
 			y_test = self.target[:holdout]
 			y_train = self.target[holdout:]
-			return x_train, y_train, x_test, y_test
-		return x_train, x_test
+		else:
+			y_train = None
+			y_test = None
+
+		return Dataset(x=x_train, y=y_train), Dataset(x=x_test, y=y_test)
 
 	def take(self, limit):
 		if self.data is None:
 			raise UninitializedDatasetError
-		return self.data[:limit]
+
+		self.data = self.data[:limit]
+		return self
 
 	def skip(self, limit):
 		if self.data is None:
@@ -289,7 +309,7 @@ if __name__ == '__main__':
 	x = np.random.randint(0, 9, (10, 3))
 	y = np.random.randint(0, 2, (10, 1))
 	ds = Dataset(x, y)
-	x_train, y_train, x_test, y_test = ds.split(split_percentage=0.3, shuffle=False)
+	ds_train, ds_test = ds.split(split_percentage=0.3, shuffle=False)
 
 	# Copy
 	ds_copy = ds.copy()
@@ -312,4 +332,19 @@ if __name__ == '__main__':
 	print(ds.data)
 
 	# Take
-	print(ds.take(2))
+	ds.take(2)
+
+	# Batch
+	#x = [[10, 10, 10], [20, 20, 20], [30, 30, 30], [40, 40, 40]]
+	x = [i for i in range(5)]
+	y = [1, 2, 3, 4, 5]
+	ds = Dataset(x=x, y=y)
+
+	print(ds.data)
+	print(ds.target)
+	ds.batch(2)
+	print(ds.data)
+	print(ds.target)
+
+
+
