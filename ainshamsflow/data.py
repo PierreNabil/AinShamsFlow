@@ -20,8 +20,9 @@ class Dataset:
 		if y is not None:
 			self.target = np.array(y)
 		if x is not None and y is not None:
-			if x.shape[0] != y.shape[0]:
+			if self.data.shape[0] != self.target.shape[0]:
 				raise UnsupportedShapeError(x.shape[0], y.shape[0])
+		self.is_batched = False
 
 	def __bool__(self):
 		return self.data is not None
@@ -73,6 +74,9 @@ class Dataset:
 			Returns:
 				- self
 		"""
+		if self.is_batched:
+			self.unbatch()
+
 		if self.data is None:
 			raise UninitializedDatasetError
 
@@ -94,11 +98,20 @@ class Dataset:
 			self.target = target_batches
 		return self
 
+	def unbatch(self):
+		if self.is_batched:
+			n1, n2, *n = x.shape
+			x.reshape((n1*n2, *n))
+		return self
+
 	def cardinality(self):
 		""" Returns the number of data points in the dataset """
 		if self.data is None:
 			raise UninitializedDatasetError
-		return self.data.shape[0]
+		if self.is_batched:
+			return self.data.shape[0] * self.data.shape[1]
+		else:
+			return self.data.shape[0]
 
 	def concatenate(self, ds_list):
 		"""
@@ -116,7 +129,6 @@ class Dataset:
 
 		self.data = np.concatenate((self.data, *[ds.data for ds in ds_list]))
 		return self
-
 
 	def enumerate(self):
 		if self.data is None:
@@ -216,6 +228,22 @@ class Dataset:
 		if self.data is None:
 			raise UninitializedDatasetError
 		self.data = self.data[limit:]
+		return self
+
+	def add_data(self, x):
+		x = np.array(x)
+		if self.target is not None:
+			if x.shape[0] != self.target.shape[0]:
+				raise UnsupportedShapeError(x.shape[0], self.target.shape[0])
+		self.data = x
+		return self
+
+	def add_targets(self, y):
+		y = np.array(y)
+		if self.data is not None:
+			if self.data.shape[0] != y.shape[0]:
+				raise UnsupportedShapeError(y.shape[0], self.data.shape[0])
+		self.target = y
 		return self
 
 

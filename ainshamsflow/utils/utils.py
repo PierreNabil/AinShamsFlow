@@ -1,12 +1,28 @@
-"""Utils module for miscellaneous helper functions."""
+from ainshamsflow.data import Dataset
 
-import numpy as np
+def get_dataset_from_xy(x, y):
+	if x is None:
+		raise RunningWithoutDataError
 
+	elif isinstance(x, Dataset):
+		if x.data is None:
+			raise RunningWithoutDataError
 
-def pred_one_hot(y_pred):
-    n_c = y_pred.shape[-1]
-    return np.squeeze(np.eye(n_c)[np.argmax(y_pred, axis=-1)])
+		elif x.target is None:
+			if y is None:
+				raise RunningWithoutDataError
+			elif isinstance(y, Dataset):
+				return x.add_targets(y.target)
+			else: # isinstance(y, np.array)
+				return x.add_targets(y)
 
+		else:  # x.target is not None
+			return x
 
-def true_one_hot(y_true, n_c):
-    return np.squeeze(np.eye(n_c)[y_true])
+	else:  # isinstance(x, np.array)
+		if y is None:
+			raise RunningWithoutDataError
+		elif isinstance(y, Dataset):
+			return y.add_data(x)
+		else: # isinstance(y, np.array)
+			return Dataset(x, y)
