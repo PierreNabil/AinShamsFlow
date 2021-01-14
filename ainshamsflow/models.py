@@ -10,10 +10,11 @@ import shelve
 from os.path import join as join_path
 import numpy as np
 
-from ainshamsflow.layers import Layer
-from ainshamsflow.optimizers import Optimizer
-from ainshamsflow.losses import Loss
-from ainshamsflow.metrics import Metric
+import ainshamsflow.layers as _layers
+import ainshamsflow.optimizers as optimizers
+import ainshamsflow.losses as losses
+import ainshamsflow.metrics as _metrics
+import ainshamsflow.regularizers as regularizers
 from ainshamsflow.data import Dataset
 from ainshamsflow.utils.utils import get_dataset_from_xy
 from ainshamsflow.utils.asf_errors import (UncompiledModelError, MultipleAccessError, BaseClassError,

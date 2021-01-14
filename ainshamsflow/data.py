@@ -33,6 +33,8 @@ class Dataset:
 	def __iter__(self):
 		if self.data is None:
 			raise UninitializedDatasetError
+		if not self.is_batched:
+			self.batch(self.cardinality())
 		self.index = 0
 		return self
 
@@ -61,7 +63,7 @@ class Dataset:
 	def apply(self, transformation):
 		return transformation(self)
 
-	def batch(self, batch_size, drop_remainder=False):
+	def batch(self, batch_size):
 		
 		""" 
 			Divides the dataset into equal parts of size equals batch_size.
@@ -81,21 +83,17 @@ class Dataset:
 			raise UninitializedDatasetError
 
 		m = self.cardinality()
+		remainder = m % batch_size
 
-		if drop_remainder:
-			self.data = np.split(self.data[:-(m % batch_size)], batch_size)
-			self.target = np.split(self.target[:-(m % batch_size)], batch_size)
-		else:
-			data_batches = np.split(self.data[:-(m % batch_size)], batch_size)
-			data_remainder = self.data[-(m % batch_size):]
-			data_batches.append(data_remainder)
+		self.take(m-remainder)
 
-			target_batches = np.split(self.target[:-(m % batch_size)], batch_size)
-			target_remainder = self.target[-(m % batch_size):]
-			target_batches.append(target_remainder)
+		_, *nd = self.data.shape
+		_, *nt = self.target.shape
+		self.data = self.data.reshape((-1, batch_size, *nd))
+		self.target = self.target.reshape((-1, batch_size, *nt))
 
-			self.data = data_batches
-			self.target = target_batches
+
+		self.is_batched = True
 		return self
 
 	def unbatch(self):
@@ -126,8 +124,13 @@ class Dataset:
 
 		if self.data is None:
 			raise UninitializedDatasetError
+		for ds in ds_list:
+			if ds.data is None:
+				raise UninitializedDatasetError
 
 		self.data = np.concatenate((self.data, *[ds.data for ds in ds_list]))
+		if self.target is not None:
+			self.target = np.concatenate((self.target, *[ds.target for ds in ds_list]))
 		return self
 
 	def enumerate(self):
@@ -218,16 +221,21 @@ class Dataset:
 		return Dataset(x=x_train, y=y_train), Dataset(x=x_test, y=y_test)
 
 	def take(self, limit):
-		if self.data is None:
+		if self.data is None and self.target is None:
 			raise UninitializedDatasetError
-
-		self.data = self.data[:limit]
+		if self.data is not None:
+			self.data = self.data[:limit]
+		if self.target is not None:
+			self.target = self.target[:limit]
 		return self
 
 	def skip(self, limit):
-		if self.data is None:
+		if self.data is None and self.target is None:
 			raise UninitializedDatasetError
-		self.data = self.data[limit:]
+		if self.data is not None:
+			self.data = self.data[limit:]
+		if self.target is not None:
+			self.target = self.target[limit:]
 		return self
 
 	def add_data(self, x):
