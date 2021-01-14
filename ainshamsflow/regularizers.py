@@ -97,6 +97,7 @@ class L1_L2(Regularizer):
 	__name__ = 'L1_L2'
 
 	def __init__(self, l1=0.01, l2=0.01):
+		super().__init__()
 		self.l1_reg = L1(l1)
 		self.l2_reg = L2(l2)
 

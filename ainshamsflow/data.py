@@ -152,6 +152,16 @@ class Dataset:
 		self.data = np.array(new_data)
 		return self
 
+	def numpy(self):
+		if self.data is None and self.target is None:
+			raise UninitializedDatasetError
+		elif self.target is None:
+			return self.data
+		elif self.data is None:
+			return self.target
+		else:
+			return self.data, self.target
+
 	def map(self, function):
 		if self.data is None:
 			raise UninitializedDatasetError
@@ -358,75 +368,3 @@ class ImageDataGenerator(Dataset):
 			img_gen_test.target = self.target[holdout:]
 
 		return img_gen_train, img_gen_test
-
-
-if __name__ == '__main__':
-
-	# Create a dataset object
-	ds = Dataset()
-
-	# Range
-	ds.range(5, 10, 2)
-	for x in ds:
-		print(x)
-
-	# Cardinality
-	print(ds.cardinality())
-
-	# Initialize with lists
-	x = [[10, 10, 10], [20, 20, 20], [30, 30, 30], [40, 40, 40]]
-	y = [1, 2, 3, 4]
-
-	ds = Dataset(x, y)
-	for x, y in ds:
-		print(x, y)
-
-	# Shuffle
-	print()
-	ds.shuffle()
-	for x, y in ds:
-		print(x, y)
-
-	# Split
-	x = np.random.randint(0, 9, (10, 3))
-	y = np.random.randint(0, 2, (10, 1))
-	ds = Dataset(x, y)
-	ds_train, ds_test = ds.split(split_percentage=0.3, shuffle=False)
-
-	# Copy
-	ds_copy = ds.copy()
-
-	# Filter
-	ds = Dataset()
-	ds.range(10)
-
-	def filter_function(x):
-		return x > 5
-
-	print(ds.data)
-	ds.filter(filter_function)
-	print(ds.data)
-
-	# Map
-	def map_function(x):
-		return x + 10
-	ds.map(map_function)
-	print(ds.data)
-
-	# Take
-	ds.take(2)
-
-	# Batch
-	#x = [[10, 10, 10], [20, 20, 20], [30, 30, 30], [40, 40, 40]]
-	x = [i for i in range(5)]
-	y = [1, 2, 3, 4, 5]
-	ds = Dataset(x=x, y=y)
-
-	print(ds.data)
-	print(ds.target)
-	ds.batch(2)
-	print(ds.data)
-	print(ds.target)
-
-
-
