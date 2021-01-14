@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.image as mpimg
 import os
 
-#from ainshamsflow.utils.asf_errors import UnsupportedShapeError, UninitializedDatasetError
+from ainshamsflow.utils.asf_errors import UnsupportedShapeError, UninitializedDatasetError
 
 
 class Dataset:
