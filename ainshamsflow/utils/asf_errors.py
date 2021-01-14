@@ -33,6 +33,14 @@ class UnsupportedShapeError(ASFError):
 		return 'Expected: {}, Found: {}.'.format(self.expected_shape, self.given_shape)
 
 
+class InvalidShapeError(ASFError):
+	def __init__(self, given_input_shape):
+		self.given_shape = str(given_input_shape)
+
+	def __str__(self):
+		return 'Given Input Shape {} is Invalid.'.format(self.given_input_shape)
+
+
 class NameNotFoundError(ASFError):
 	def __init__(self, name, module_name):
 		self.name = name
@@ -54,6 +62,43 @@ class LayerNotFoundError(ASFError):
 			return 'Layer indexed {} not found.'.format(self.name)
 
 
+class WrongObjectError(ASFError):
+	def __init__(self, given_obj, expected_obj):
+		self.given_class = type(given_obj).__name__
+		self.expected_class = type(expected_obj).__name__
+
+	def __str__(self):
+		return 'Expected: {}, Found: {}.'.format(self.expected_class, self.given_class)
+
+
+class InvalidPreceedingLayerError(ASFError):
+	def __init__(self, current_layer_type):
+		self.c_layer_name = current_layer_type.__name__
+
+	def __str__(self):
+		return 'The Layer before layer {} is incompatible with it.'.format(self.c_layer_name)
+
+
+class InvalidRangeError(ASFError):
+	def __int__(self, var, minimum=None, maximum=None):
+		self.var = nameof(var)
+		self.min = minimum
+		self.max = maxaimum
+
+	def __str__(self):
+		if self.min is None:
+			return 'The value {} should be less than {}.'.format(self.var, self.max)
+		elif self.max is None:
+			return 'The value {} should be greater than {}.'.format(self.var, self.min)
+		else:
+			return 'The value {} should be between {} and {}.'.format(self.var, self.min, self.max)
+
+
+class RunningWithoutDataError(ASFError):
+	def __str__(self):
+		return 'Trying to use the model without any data is invalid.'
+
+  
 class UninitializedDatasetError(ASFError):
 	def __str__(self):
 		return 'Using an uninitialized dataset is invalid.'

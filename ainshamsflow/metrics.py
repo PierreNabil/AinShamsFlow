@@ -1,129 +1,102 @@
-"""Metrics Module.
-
-In this Module, we include our loss functions such as Accuracy.
-"""
-
 import numpy as np
 
-from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
-#TODO: Add More Metrics
+from ainshamsflow.utils.utils import pred_one_hot, true_one_hot
+from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
 
 
 def get(metric_name):
-	"""Get any Metric in this Module by name."""
-
-	metrics = [Accuracy]
+	metrics = [Accuracy, Precision, Recall, F1Score,
+			   TruePositive, TrueNegative, FalsePositive, FalseNegative]
 	for metric in metrics:
 		if metric.__name__.lower() == metric_name.lower():
-			return metric
+			return metric()
 	raise NameNotFoundError(metric_name, __name__)
 
 
+def _check_dims(y_pred, y_true):
+	if y_true.shape[-1] == 1 and y_pred.shape[-1] != 1:
+		n_c = y_pred.shape[-1]
+		y_true = true_one_hot(y_true, n_c)
+	if y_true.shape != y_pred.shape:
+		raise UnsupportedShapeError(y_true.shape, y_pred.shape)
+	return y_true
+
+
 class Metric:
-	"""Metrics Base Class.
-
-	To create a new Metric, create a class that inherits from
-	this class.
-	You then have to add any parameters in your constructor
-	and redefine the __call__() method.
-	"""
-
 	def __call__(self, y_pred, y_true):
 		raise BaseClassError
 
 
-class Accuracy(Metric):
-	"""Accuracy Metric."""
+class FalseNegative(Metric):
+	__name__ = 'FN'
 
+	def __call__(self, y_pred, y_true):
+		y_true = _check_dims(y_pred, y_true)
+		y_pred = pred_one_hot(y_pred)
+		return np.sum(np.logical_and(y_pred == 0, y_true == 1))
+
+
+class FalsePositive(Metric):
+	__name__ = 'FP'
+
+	def __call__(self, y_pred, y_true):
+		y_true = _check_dims(y_pred, y_true)
+		y_pred = pred_one_hot(y_pred)
+		return np.sum(np.logical_and(y_pred == 1, y_true == 0))
+
+
+class TrueNegative(Metric):
+	__name__ = 'TN'
+
+	def __call__(self, y_pred, y_true):
+		y_true = _check_dims(y_pred, y_true)
+		y_pred = pred_one_hot(y_pred)
+		return np.sum(np.logical_and(y_pred == 0, y_true == 0))
+
+
+class TruePositive(Metric):
+	__name__ = 'TP'
+
+	def __call__(self, y_pred, y_true):
+		y_true = _check_dims(y_pred, y_true)
+		y_pred = pred_one_hot(y_pred)
+		return np.sum(np.logical_and(y_pred == 1, y_true == 1))
+
+
+class Accuracy(Metric):
 	__name__ = 'Accuracy'
 
 	def __call__(self, y_pred, y_true):
-		assert y_true.shape == y_pred.shape
-		m = y_true.shape[0]
-		return np.sum(y_pred == y_true) / m
+		TP = TruePositive()(y_pred, y_true)
+		TN = TrueNegative()(y_pred, y_true)
+		FP = FalsePositive()(y_pred, y_true)
+		FN = FalseNegative()(y_pred, y_true)
+		return (TP + TN) / (TP + TN + FP + FN)
 
-
-class FalseNegatives(Metric):
-	def __call__(self, y_true,y_pred):
-		y_pred, y_true = np.array(y_pred), np.array(y_true)
-		assert y_true.shape == y_pred.shape
-		return np.sum(np.logical_and(y_pred == 0, y_true == 1))
-
-class FalsePositives(Metric):
-	def __call__(self, y_true,y_pred):
-		y_pred, y_true = np.array(y_pred), np.array(y_true)
-		assert y_true.shape == y_pred.shape
-		return np.sum(np.logical_and(y_pred == 1, y_true == 0))
-
-class TrueNegatives(Metric):
-	def __call__(self, y_true,y_pred):
-		y_pred, y_true = np.array(y_pred), np.array(y_true)
-		assert y_true.shape == y_pred.shape
-		return np.sum(np.logical_and(y_pred == 0, y_true == 0))
-
-class TruePositives(Metric):
-	def __call__(self, y_true,y_pred):
-		y_pred, y_true = np.array(y_pred), np.array(y_true)
-		assert y_true.shape == y_pred.shape
-		return np.sum(np.logical_and(y_pred == 1, y_true == 1))
 
 class Precision(Metric):
-	def __call__(self, y_true,y_pred):
-		y_pred, y_true = np.array(y_pred), np.array(y_true)
-		assert y_true.shape == y_pred.shape
-		TP = np.sum(np.logical_and(y_pred == 1, y_true == 1))
-		FP = np.sum(np.logical_and(y_pred == 1, y_true == 0))
+	__name__ = 'Precision'
+
+	def __call__(self, y_pred, y_true):
+		TP = TruePositive()(y_pred, y_true)
+		FP = FalsePositive()(y_pred, y_true)
 		return TP/(TP+FP)
 
+
 class Recall(Metric):
-	def __call__(self, y_true,y_pred):
-		y_pred, y_true = np.array(y_pred), np.array(y_true)
-		assert y_true.shape == y_pred.shape
-		TP = np.sum(np.logical_and(y_pred == 1, y_true == 1))
-		FN = np.sum(np.logical_and(y_pred == 0, y_true == 1))
+	__name__ = 'Recall'
+
+	def __call__(self, y_pred, y_true):
+		TP = TruePositive()(y_pred, y_true)
+		FN = FalseNegative()(y_pred, y_true)
 		return TP/(TP+FN)
 
-class Fscore(Metric):
-	def __call__(self, y_true,y_pred):
-		y_pred, y_true = np.array(y_pred), np.array(y_true)
-		assert y_true.shape == y_pred.shape
-		TP = np.sum(np.logical_and(y_pred == 1, y_true == 1))
-		FN = np.sum(np.logical_and(y_pred == 0, y_true == 1))
-		FP = np.sum(np.logical_and(y_pred == 1, y_true == 0))
+
+class F1Score(Metric):
+	__name__ = 'F1Score'
+
+	def __call__(self, y_pred, y_true):
+		TP = TruePositive()(y_pred, y_true)
+		FN = FalseNegative()(y_pred, y_true)
+		FP = FalsePositive()(y_pred, y_true)
 		return 2*TP/(2*TP+FP+FN)
-class BinaryCrossentropy(Metric):
-	def __call__(self, y_true,y_pred):
-		y_pred, y_true = np.array(y_pred), np.array(y_true)
-		assert y_true.shape == y_pred.shape
-		return - np.mean(np.multiply(y_true, np.log(y_pred)) + np.multiply((1 - y_true), np.log(1 - y_pred)))
-
-class CategoricalCrossentropy(Metric):
-	def __call__(self, y_true, y_pred):
-		y_pred,y_true=np.array(y_pred),np.array(y_true)
-		assert y_true.shape == y_pred.shape
-		m = y_true.shape[0]
-		return -np.sum(y_true * np.log(y_pred + 1e-9))/m
-
-class SparseCategoricalCrossentropy(Metric):
-	def __call__(self, y_true,y_pred):
-		y_pred = np.array(y_pred)
-		y_true = np.array(self._convertToOneHot(y_true))
-		assert y_true.shape == y_pred.shape
-		m = y_true.shape[0]
-		return -np.sum(y_true * np.log(y_pred + 1e-9)) / m
-
-	def _convertToOneHot(self, vector, num_classes=None):
-		vector = np.array(vector)
-		assert isinstance(vector, np.ndarray)
-		assert len(vector) > 0
-
-		if num_classes is None:
-			num_classes = np.max(vector) + 1
-		else:
-			assert num_classes > 0
-			assert num_classes >= np.max(vector)
-
-		result = np.zeros(shape=(len(vector), num_classes))
-		result[np.arange(len(vector)), vector] = 1
-		return result.astype(int)
-

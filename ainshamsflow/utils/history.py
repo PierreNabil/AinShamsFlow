@@ -12,13 +12,19 @@ import matplotlib.pyplot as plt
 class History:
 	"""History Class."""
 
-	def __init__(self, loss, metrics=[]):
+	def __init__(self, loss, metrics=None):
 		"""Initialize empty loss and metrics values and save loss and metrics names."""
 
+		if metrics is None:
+			metrics = []
 		self.loss_values = []
 		self.metric_values = []
 		self.loss_name = loss.__name__
 		self.metric_names = [metric.__name__ for metric in metrics]
+
+		if len(self.loss_name) > 12:
+			if self.loss_name[-12:] == 'Crossentropy':
+				self.loss_name = 'Crossentropy'
 
 	def add(self, loss_value, metric_values):
 		"""Add Values to the history of the training session."""
@@ -36,10 +42,11 @@ class History:
 
 		num_of_plots = len(self.metric_names) + 1 if show_metrics else 1
 
-		fig, axs = plt.subplots(num_of_plots, 1, squeeze=False)
+		fig, axs = plt.subplots(num_of_plots, 1, squeeze=False, figsize=(8, 3*num_of_plots))
 
 		# Loss Plots:
-		axs[0, 0].plot(self.loss_values)
+		epochs = np.arange(len(self.loss_values)) + 1
+		axs[0, 0].plot(epochs, self.loss_values)
 		axs[0, 0].set_title('Model Loss')
 		axs[0, 0].set_ylabel(self.loss_name)
 		axs[0, 0].set_xlabel('epochs')
@@ -50,7 +57,7 @@ class History:
 		if self.metric_names and show_metrics:
 			for j, metric_values in enumerate(self.flipped_metrics()):
 				axs[j+1, 0].plot(metric_values)
-				if j==0:
+				if j == 0:
 					axs[j+1, 0].set_title('Model Metrics')
 				axs[j+1, 0].set_ylabel(self.metric_names[j])
 				axs[j+1, 0].set_xlabel('epochs')

@@ -6,7 +6,8 @@ Uniform or Normal Initializers.
 
 import numpy as np
 
-from ainshamsflow.utils.asf_errors import BaseClassError, UnsupportedShapeError, NameNotFoundError
+from ainshamsflow.utils.asf_errors import (BaseClassError, UnsupportedShapeError, NameNotFoundError,
+										   InvalidRangeError)
 
 
 def get(init_name):
@@ -46,7 +47,8 @@ class Uniform(Initializer):
 	"""Uniform Distribution Initializer."""
 
 	def __init__(self, start=0, end=1):
-		assert start < end
+		if not start < end:
+			raise InvalidRangeError(start, None, end)
 		self.start = start
 		self.range = end - start
 
@@ -58,7 +60,8 @@ class Normal(Initializer):
 	"""Normal (Gaussian) Distribution Initializer."""
 
 	def __init__(self, mean=0, std=1):
-		assert std > 0
+		if not std > 0:
+			raise InvalidRangeError(std, 0)
 		self.mean = mean
 		self.std = std
 

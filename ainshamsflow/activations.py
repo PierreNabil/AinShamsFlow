@@ -7,13 +7,13 @@ such as the Linear and Sigmoid functions.
 import numpy as np
 
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
-#TODO: Add More Activations
 
 
 def get(act_name):
 	"""Get any Activation Function in this Module by name."""
 
-	acts = [Linear, Sigmoid, Tanh, ReLU, LeakyReLU]
+	acts = [Linear, Sigmoid, Tanh, ReLU, LeakyReLU, SoftPlus, ELU,
+			SELU, SoftSign, Swish, Softmax, HardTanh, HardSigmoid]
 	for act in acts:
 		if act.__name__.lower() == act_name.lower():
 			return act()
@@ -103,72 +103,89 @@ class LeakyReLU(Activation):
 		return np.where(z > 0, 1, self.alpha)
 
 
-#todo : hard simgoid , selu , elu , soft sign , swish , softplus , hard tanh
-class Softplus(Activation):
-	def __call__(self,z):
-		return np.log( 1 + np.exp(z))
-	def diff(self,z):
+class SoftPlus(Activation):
+	def __call__(self, z):
+		return np.log(1 + np.exp(z))
+
+	def diff(self, z):
 		return 1 / (1 + np.exp(-z))	# exp z / 1 + exp z
 
+
 class ELU(Activation):
-	def __init__(self,alpha_ELU=1.67326):
-		self.alpha_ELU = alpha_ELU
+	def __init__(self, alpha=1.67326):
+		self.alpha = alpha
 	
-	def __call__(self,z):
-		return np.where(z <= 0 ,self.alpha_ELU * ( np.exp(z) - 1), z)
+	def __call__(self, z):
+		return np.where(z <= 0, self.alpha * (np.exp(z) - 1), z)
 	
-	def diff(self,z):
-		return np.where(z < 0 , self.alpha_ELU * np.exp(z) , 1) # alpha = ????
+	def diff(self, z):
+		return np.where(z < 0, self.alpha * np.exp(z), 1)
+
 
 class SELU(Activation):
-	def __init__(self ,alpha_SELU = 1.67326 , lambda_SELU =1.0507):
-		self.alpha_SELU = alpha_SELU
-		self.lambda_SELU = lambda_SELU
+	def __init__(self, alpha=1.67326, lambd=1.0507):
+		self.alpha = alpha
+		self.lambd = lambd
 	
-	def __call__(self,z):
-		return self.lambda_SELU * (np.where(z >= 0 , z ,self.alpha_SELU * ( np.exp(z) - 1) ))
+	def __call__(self, z):
+		return self.lambd * (np.where(z >= 0, z, self.alpha * (np.exp(z) - 1)))
 
-	def diff(self,z):
-		return self.lambda_SELU * (np.where(z >= 0 , 1 ,self.alpha_SELU * ( np.exp(z) )))
+	def diff(self, z):
+		return self.lambd * (np.where(z >= 0, 1, self.alpha * (np.exp(z))))
 
-class Softsign(Activation):
-	def __call__(self,z):
-		return z / ( 1 + np.abs(z))
+
+class SoftSign(Activation):
+	def __call__(self, z):
+		return z / (1 + np.abs(z))
 	
-	def diff(self,z):
-		Softsign_down = ( 1 + np.abs(z))
-		return 1 / np.power(Softsign_down  , 2)
+	def diff(self, z):
+		Softsign_down = (1 + np.abs(z))
+		return 1 / np.power(Softsign_down, 2)
+
 
 class Swish(Activation):
-	def __call__(self,z):
-		return z * Sigmoid(z)
+	def __call__(self, z):
+		return z * Sigmoid()(z)
 	
-	def diff(self,z):
-		return Sigmoid(z) + z * Sigmoid(z) * (1 - Sigmoid(z)) 
+	def diff(self, z):
+		sig_z = Sigmoid()(z)
+		return sig_z + z * sig_z * (1 - sig_z)
+
 
 class Softmax(Activation):
-	def __call__(self,z):
+	def __call__(self, z):
+		z = z - np.max(z, axis=-1, keepdims=True)
 		exp_z = np.exp(z)
-		sum = np.sum(exp_z,axis=-1,keepdims=True)
-		return exp_z / sum
+		s = np.sum(exp_z, axis=-1, keepdims=True)
+		ans = exp_z / s
+		ans = np.where(ans == 0, 1e-6, np.where(ans > 1 - 1e-6, 1 - 1e-6, ans))
+		return ans
 
-	def diff(self,z):
-		s = self.__call__(z)
-		return np.diagflat(s) - np.dot( s , np.transpose(s))
+	def diff(self, z):
+		# da = np.ones(z.shape)
+		# m, n = z.shape
+		# p = self.__call__(z)
+		# tensor1 = np.einsum('ij,ik->ijk', p, p)  # (m, n, n)
+		# tensor2 = np.einsum('ij,jk->ijk', p, np.eye(n, n))  # (m, n, n)
+		# dz = tensor2 - tensor1
+		# dz = np.einsum('ijk,ik->ij', dz, da)
+		# return dz
+		return 1
 
-class Hardtanh(Activation):
-	def __call__(self,z):
-		z = np.where(z >  1,  1, z)
+
+class HardTanh(Activation):
+	def __call__(self, z):
+		z = np.where(z > 1, 1, z)
 		z = np.where(z < -1, -1, z)
 		return z
 
-	def diff(self,z):
-		return np.where(np.logical_not(np.logical_or(np.greater(z,1),np.less(z,-1))) , 1 , 0)		
+	def diff(self, z):
+		return np.where(np.logical_not(np.logical_or(np.greater(z, 1), np.less(z, -1))), 1, 0)
 
-class Hardsigmoid(Activation):
-	def __call__(self,z):
+
+class HardSigmoid(Activation):
+	def __call__(self, z):
 		return np.maximum(0, np.minimum(1, (z + 1) / 2))
 
-	def diff(self,z):
-		return np.where(np.logical_not(np.logical_or( np.less(z, -2.5) , np.greater(z , 2.5) ), 0.2 , 0))		
-
+	def diff(self, z):
+		return np.where(np.logical_not(np.logical_or(np.less(z, -2.5), np.greater(z, 2.5)), 0.2, 0))

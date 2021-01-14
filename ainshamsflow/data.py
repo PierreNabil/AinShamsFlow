@@ -20,8 +20,10 @@ class Dataset:
 		if y is not None:
 			self.target = np.array(y)
 		if x is not None and y is not None:
-			if x.shape[0] != y.shape[0]:
+			if self.data.shape[0] != self.target.shape[0]:
 				raise UnsupportedShapeError(x.shape[0], y.shape[0])
+		self.is_batched = False
+
 
 	def __bool__(self):
 		return self.data is not None
@@ -32,6 +34,10 @@ class Dataset:
 	def __iter__(self):
 		if self.data is None:
 			raise UninitializedDatasetError
+
+		if not self.is_batched:
+			self.batch(self.cardinality())
+
 		self.index = 0
 		return self
 
@@ -60,7 +66,7 @@ class Dataset:
 	def apply(self, transformation):
 		return transformation(self)
 
-	def batch(self, batch_size, drop_remainder=False):
+	def batch(self, batch_size):
 		
 		""" 
 			Divides the dataset into equal parts of size equals batch_size.
@@ -73,32 +79,41 @@ class Dataset:
 			Returns:
 				- self
 		"""
+		if self.is_batched:
+			self.unbatch()
+
 		if self.data is None:
 			raise UninitializedDatasetError
 
 		m = self.cardinality()
+		remainder = m % batch_size
 
-		if drop_remainder:
-			self.data = np.split(self.data[:-(m % batch_size)], batch_size)
-			self.target = np.split(self.target[:-(m % batch_size)], batch_size)
-		else:
-			data_batches = np.split(self.data[:-(m % batch_size)], batch_size)
-			data_remainder = self.data[-(m % batch_size):]
-			data_batches.append(data_remainder)
+		self.take(m-remainder)
 
-			target_batches = np.split(self.target[:-(m % batch_size)], batch_size)
-			target_remainder = self.target[-(m % batch_size):]
-			target_batches.append(target_remainder)
+		_, *nd = self.data.shape
+		_, *nt = self.target.shape
+		self.data = self.data.reshape((-1, batch_size, *nd))
+		self.target = self.target.reshape((-1, batch_size, *nt))
 
-			self.data = data_batches
-			self.target = target_batches
+
+		self.is_batched = True
+		return self
+
+	def unbatch(self):
+		if self.is_batched:
+			n1, n2, *n = x.shape
+			x.reshape((n1*n2, *n))
 		return self
 
 	def cardinality(self):
 		""" Returns the number of data points in the dataset """
 		if self.data is None:
 			raise UninitializedDatasetError
-		return self.data.shape[0]
+
+		if self.is_batched:
+			return self.data.shape[0] * self.data.shape[1]
+		else:
+			return self.data.shape[0]
 
 	def concatenate(self, ds_list):
 		"""
@@ -113,10 +128,14 @@ class Dataset:
 
 		if self.data is None:
 			raise UninitializedDatasetError
+		for ds in ds_list:
+			if ds.data is None:
+				raise UninitializedDatasetError
 
 		self.data = np.concatenate((self.data, *[ds.data for ds in ds_list]))
+		if self.target is not None:
+			self.target = np.concatenate((self.target, *[ds.target for ds in ds_list]))
 		return self
-
 
 	def enumerate(self):
 		if self.data is None:
@@ -136,6 +155,16 @@ class Dataset:
 				new_data.append(x)
 		self.data = np.array(new_data)
 		return self
+
+	def numpy(self):
+		if self.data is None and self.target is None:
+			raise UninitializedDatasetError
+		elif self.target is None:
+			return self.data
+		elif self.data is None:
+			return self.target
+		else:
+			return self.data, self.target
 
 	def map(self, function):
 		if self.data is None:
@@ -206,16 +235,38 @@ class Dataset:
 		return Dataset(x=x_train, y=y_train), Dataset(x=x_test, y=y_test)
 
 	def take(self, limit):
-		if self.data is None:
+		if self.data is None and self.target is None:
 			raise UninitializedDatasetError
-
-		self.data = self.data[:limit]
+		if self.data is not None:
+			self.data = self.data[:limit]
+		if self.target is not None:
+			self.target = self.target[:limit]
 		return self
 
 	def skip(self, limit):
-		if self.data is None:
+		if self.data is None and self.target is None:
 			raise UninitializedDatasetError
-		self.data = self.data[limit:]
+		if self.data is not None:
+			self.data = self.data[limit:]
+		if self.target is not None:
+			self.target = self.target[limit:]
+		return self
+
+	def add_data(self, x):
+		x = np.array(x)
+		if self.target is not None:
+			if x.shape[0] != self.target.shape[0]:
+				raise UnsupportedShapeError(x.shape[0], self.target.shape[0])
+		self.data = x
+		return self
+
+	def add_targets(self, y):
+		y = np.array(y)
+		if self.data is not None:
+			if self.data.shape[0] != y.shape[0]:
+				raise UnsupportedShapeError(y.shape[0], self.data.shape[0])
+		self.target = y
+
 		return self
 
 
@@ -322,75 +373,3 @@ class ImageDataGenerator(Dataset):
 			img_gen_test.target = self.target[holdout:]
 
 		return img_gen_train, img_gen_test
-
-
-if __name__ == '__main__':
-
-	# Create a dataset object
-	ds = Dataset()
-
-	# Range
-	ds.range(5, 10, 2)
-	for x in ds:
-		print(x)
-
-	# Cardinality
-	print(ds.cardinality())
-
-	# Initialize with lists
-	x = [[10, 10, 10], [20, 20, 20], [30, 30, 30], [40, 40, 40]]
-	y = [1, 2, 3, 4]
-
-	ds = Dataset(x, y)
-	for x, y in ds:
-		print(x, y)
-
-	# Shuffle
-	print()
-	ds.shuffle()
-	for x, y in ds:
-		print(x, y)
-
-	# Split
-	x = np.random.randint(0, 9, (10, 3))
-	y = np.random.randint(0, 2, (10, 1))
-	ds = Dataset(x, y)
-	ds_train, ds_test = ds.split(split_percentage=0.3, shuffle=False)
-
-	# Copy
-	ds_copy = ds.copy()
-
-	# Filter
-	ds = Dataset()
-	ds.range(10)
-
-	def filter_function(x):
-		return x > 5
-
-	print(ds.data)
-	ds.filter(filter_function)
-	print(ds.data)
-
-	# Map
-	def map_function(x):
-		return x + 10
-	ds.map(map_function)
-	print(ds.data)
-
-	# Take
-	ds.take(2)
-
-	# Batch
-	#x = [[10, 10, 10], [20, 20, 20], [30, 30, 30], [40, 40, 40]]
-	x = [i for i in range(5)]
-	y = [1, 2, 3, 4, 5]
-	ds = Dataset(x=x, y=y)
-
-	print(ds.data)
-	print(ds.target)
-	ds.batch(2)
-	print(ds.data)
-	print(ds.target)
-
-
-
