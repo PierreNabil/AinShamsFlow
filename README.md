@@ -90,33 +90,33 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
 
 ## Todo:
 ### Framework Design:
-- [ ] A Data Module to read and process datasets.
-    - [ ] Dataset
-        - [ ] \_\_init\_\_()
-        - [ ] \_\_str\_\_()
-        - [ ] \_\_bool\_\_()
-        - [ ] \_\_len\_\_()
-        - [ ] \_\_iter\_\_()
-        - [ ] \_\_next\_\_()
-        - [ ] apply()
-        - [ ] numpy()
-        - [ ] batch()
-        - [ ] cardinality()
-        - [ ] concatenate()
-        - [ ] enumerate()
-        - [ ] filter()
-        - [ ] from_iterator()
-        - [ ] map()
-        - [ ] range()
-        - [ ] reduce()
-        - [ ] shuffle()
-        - [ ] skip()
-        - [ ] take()
-        - [ ] unbatch()
-        - [ ] zip()
-    - [ ] ImageDataGenerator
-        - [ ] \_\_init\_\_()
-        - [ ] flow_from_directory()
+- [x] A Data Module to read and process datasets.
+    - [x] Dataset
+        - [x] \_\_init\_\_()
+        - [x] \_\_bool\_\_()
+        - [x] \_\_len\_\_()
+        - [x] \_\_iter\_\_()
+        - [x] \_\_next\_\_()
+        - [x] apply()
+        - [x] numpy()
+        - [x] batch()
+        - [x] cardinality()
+        - [x] concatenate()
+        - [x] copy()
+        - [x] enumerate()
+        - [x] filter()
+        - [x] map()
+        - [x] range()
+        - [x] shuffle()
+        - [x] skip()
+        - [x] split()
+        - [x] take()
+        - [x] unbatch()
+        - [x] add_data()
+        - [x] add_targets()
+    - [x] ImageDataGenerator
+        - [x] \_\_init\_\_()
+        - [x] flow_from_directory()
 
 - [x] A NN Module to design different architectures.
     - [x] Activation Functions
@@ -193,10 +193,10 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
         - [x] Recall
         - [x] F1Score
         
-    - [ ] Regularizers
+    - [x] Regularizers
         - [x] L1
         - [x] L2
-        - [ ] L1L2
+        - [x] L1L2
 
     - [x] Optimization Modules for training
         - [x] SGD

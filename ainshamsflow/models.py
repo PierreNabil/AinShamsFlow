@@ -1,5 +1,4 @@
 """Models Module.
-
 In this module we define the Sequential model type, which is the
 main model type in asf.
 We may implement more model types in the future.
@@ -15,6 +14,8 @@ import ainshamsflow.optimizers as optimizers
 import ainshamsflow.losses as losses
 import ainshamsflow.metrics as _metrics
 import ainshamsflow.regularizers as regularizers
+from ainshamsflow.data import Dataset
+from ainshamsflow.utils.utils import get_dataset_from_xy
 from ainshamsflow.utils.asf_errors import (UncompiledModelError, MultipleAccessError, BaseClassError,
 										   LayerNotFoundError, UnsupportedShapeError, WrongObjectError,
 										   InvalidShapeError)
@@ -97,6 +98,9 @@ class Model(_layers.Layer):
 	def predict(self, x):
 		"""Predict new data."""
 
+		if isinstance(x, Dataset):
+			x = x.data
+
 		return self.__call__(x)
 
 	def add_layer(self, layer):
@@ -126,7 +130,6 @@ class Model(_layers.Layer):
 
 class Sequential(Model):
 	"""Sequential Model Class.
-
 	Used to create Models where there is a strict, linear, layer-by-layer
 	structure.
 	"""
@@ -155,28 +158,24 @@ class Sequential(Model):
 		n_out = [str(ch) for ch in self.n_out]
 		self.output_shape = '(None' + (',{:4}'*len(n_out)).format(*n_out) + ')'
 
-	def fit(self, x, y, epochs, batch_size=None, verbose=True):
+	def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True) :
 		"""Fit the model to the training data."""
 
-		if self.optimizer is None:
-			raise UncompiledModelError
+		ds = get_dataset_from_xy(x, y)
 
-		if batch_size is None:
-			m = x.shape[0]
-			batch_size = m
-		return self.optimizer(x, y, epochs, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
+		if self.optimizer is None :
+			raise UncompiledModelError
+		return self.optimizer(ds, epochs, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
 							  verbose=verbose, training=True)
 
-	def evaluate(self, x, y, batch_size=None, verbose=True):
+	def evaluate(self, x, y=None, batch_size=None, verbose=True) :
 		"""Evaluate the model on validation data."""
 
-		if self.optimizer is None:
-			raise UncompiledModelError
+		ds = get_dataset_from_xy(x, y)
 
-		if batch_size is None:
-			m = x.shape[0]
-			batch_size = m
-		history = self.optimizer(x, y, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
+		if self.optimizer is None :
+			raise UncompiledModelError
+		history = self.optimizer(ds, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
 								 verbose=verbose, training=False)
 		loss_value = np.mean(history.loss_values)
 		metric_values = history.flipped_metrics()
