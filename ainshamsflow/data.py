@@ -24,6 +24,7 @@ class Dataset:
 				raise UnsupportedShapeError(x.shape[0], y.shape[0])
 		self.is_batched = False
 
+
 	def __bool__(self):
 		return self.data is not None
 
@@ -33,8 +34,10 @@ class Dataset:
 	def __iter__(self):
 		if self.data is None:
 			raise UninitializedDatasetError
+
 		if not self.is_batched:
 			self.batch(self.cardinality())
+
 		self.index = 0
 		return self
 
@@ -106,6 +109,7 @@ class Dataset:
 		""" Returns the number of data points in the dataset """
 		if self.data is None:
 			raise UninitializedDatasetError
+
 		if self.is_batched:
 			return self.data.shape[0] * self.data.shape[1]
 		else:
@@ -262,6 +266,7 @@ class Dataset:
 			if self.data.shape[0] != y.shape[0]:
 				raise UnsupportedShapeError(y.shape[0], self.data.shape[0])
 		self.target = y
+
 		return self
 
 

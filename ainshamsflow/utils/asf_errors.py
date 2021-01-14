@@ -98,7 +98,7 @@ class RunningWithoutDataError(ASFError):
 	def __str__(self):
 		return 'Trying to use the model without any data is invalid.'
 
-
+  
 class UninitializedDatasetError(ASFError):
 	def __str__(self):
 		return 'Using an uninitialized dataset is invalid.'
