@@ -167,7 +167,7 @@ class Dataset:
 
 	def map(self, function):
 		if self.data is None:
-		raise UninitializedDatasetError
+			raise UninitializedDatasetError
 		function=np.vectorize(function)
 		return function(self.data)
 
@@ -266,9 +266,9 @@ class Dataset:
 		return self
 
 	def normalize(self):
-                if self.data is None:
-                        rise UninitializedDatasetError
-                self.data=(self.data-self.data.mean(axis=0))/np.sqrt(self.data.var(axis=0)+1e-6)
+		if self.data is None:
+			raise UninitializedDatasetError
+		self.data=(self.data-self.data.mean(axis=0))/np.sqrt(self.data.var(axis=0)+1e-6)
 		return self
 
 
