@@ -95,7 +95,6 @@ class Dataset:
 		self.data = self.data.reshape((-1, batch_size, *nd))
 		self.target = self.target.reshape((-1, batch_size, *nt))
 
-
 		self.is_batched = True
 		return self
 
@@ -168,12 +167,9 @@ class Dataset:
 
 	def map(self, function):
 		if self.data is None:
-			raise UninitializedDatasetError
-		new_data = []
-		for element in self.data:
-			new_data.append(function(element))
-		self.data = np.array(new_data)
-		return self
+		raise UninitializedDatasetError
+		function=np.vectorize(function)
+		return function(self.data)
 
 	def range(self, *args):
 		self.data = np.arange(*args)
@@ -268,6 +264,13 @@ class Dataset:
 		self.target = y
 
 		return self
+
+	def normalize(self,eps):
+                if self.data is None:
+                        rise UninitializedDatasetError
+                else:
+                self.data = np.array(self.data)
+                self.data=(self.data-self.data.mean(axis=0))/np.sqrt(self.data.var(axis=0)+eps)
 
 
 class ImageDataGenerator(Dataset):
