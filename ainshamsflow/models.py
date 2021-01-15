@@ -7,7 +7,7 @@ We may implement more model types in the future.
 
 import shelve
 from os.path import join as join_path
-import numpy as np
+import cupy as np
 
 import ainshamsflow.layers as _layers
 import ainshamsflow.optimizers as optimizers

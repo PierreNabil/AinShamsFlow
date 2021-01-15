@@ -4,7 +4,7 @@ In this Module, we include our optimization algorithms such as
 Stocastic Gradient Descent (SGD).
 """
 
-import numpy as np
+import cupy as np
 
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
 from ainshamsflow.utils.history import History

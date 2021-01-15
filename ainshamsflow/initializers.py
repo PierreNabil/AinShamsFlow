@@ -4,7 +4,7 @@ In this Module, we include our Initializers such as
 Uniform or Normal Initializers.
 """
 
-import numpy as np
+import cupy as np
 
 from ainshamsflow.utils.asf_errors import (BaseClassError, UnsupportedShapeError, NameNotFoundError,
 										   InvalidRangeError)

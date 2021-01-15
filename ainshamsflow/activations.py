@@ -4,7 +4,7 @@ In this Module, we include our activation functions
 such as the Linear and Sigmoid functions.
 """
 
-import numpy as np
+import cupy as np
 
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
 

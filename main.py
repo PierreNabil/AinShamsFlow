@@ -1,7 +1,7 @@
 """Used to test all created objects."""
 
 import ainshamsflow as asf
-import numpy as np
+import cupy as np
 
 
 x = np.random.rand(15, 10, 10, 3)

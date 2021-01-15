@@ -4,7 +4,7 @@ In this Module, we include our dataset handling classes. These include a general
 and a ImageDataGenerator Class that is more specific to dealing with Images inside directories.
 """
 
-import numpy as np
+import cupy as np
 import matplotlib.image as mpimg
 import os
 

@@ -3,7 +3,7 @@
 In this Module, we include our Layers such as Dense and Conv Layers.
 """
 
-import numpy as np
+import cupy as np
 
 from ainshamsflow import activations
 from ainshamsflow import initializers

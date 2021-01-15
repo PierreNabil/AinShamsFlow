@@ -1,6 +1,6 @@
 """Utils module for miscellaneous helper functions."""
 
-import numpy as np
+import cupy as np
 
 from ainshamsflow.data import Dataset
 

@@ -1,4 +1,4 @@
-import numpy as np
+import cupy as np
 
 from ainshamsflow.utils.utils import pred_one_hot, true_one_hot
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError

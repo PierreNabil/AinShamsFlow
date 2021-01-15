@@ -4,7 +4,7 @@ In this Module we provide our loss functions for a variety of
 use cases like Mean Squared Error or Cross Entropy loss.
 """
 
-import numpy as np
+import cupy as np
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
 from ainshamsflow.utils.utils import true_one_hot
 

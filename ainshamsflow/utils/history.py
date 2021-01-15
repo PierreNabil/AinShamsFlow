@@ -5,7 +5,7 @@ such as loss and metric values during training.
 """
 
 
-import numpy as np
+import cupy as np
 import matplotlib.pyplot as plt
 
 

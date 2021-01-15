@@ -3,7 +3,7 @@
 In this Module, we include our Regularizers such as L1 and L2.
 """
 
-import numpy as np
+import cupy as np
 
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError
 
