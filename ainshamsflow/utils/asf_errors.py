@@ -4,8 +4,6 @@ In this Module, we define all Exceptions used in te asf
 framework.
 """
 
-from varname import nameof
-
 
 class ASFError(Exception):
 	pass
@@ -62,7 +60,7 @@ class LayerNotFoundError(ASFError):
 			return 'Layer {} not found.'.format(self.name)
 		else:
 			return 'Layer indexed {} not found.'.format(self.name)
-		
+
 
 class WrongObjectError(ASFError):
 	def __init__(self, given_obj, expected_obj):
@@ -94,3 +92,13 @@ class InvalidRangeError(ASFError):
 			return 'The value {} should be greater than {}.'.format(self.var, self.min)
 		else:
 			return 'The value {} should be between {} and {}.'.format(self.var, self.min, self.max)
+
+
+class RunningWithoutDataError(ASFError):
+	def __str__(self):
+		return 'Trying to use the model without any data is invalid.'
+
+  
+class UninitializedDatasetError(ASFError):
+	def __str__(self):
+		return 'Using an uninitialized dataset is invalid.'

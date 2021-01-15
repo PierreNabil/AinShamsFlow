@@ -1,9 +1,12 @@
 # AinShamsFlow
 4th CSE Neural Networks Project.
 
+![asf_logo](/images/asf_logo.png)
+
 ## Contents:
 * [Project Description](#Project-Description)
 * [Project Structure](#Project-Structure)
+* [install](#Install)
 * [Usage](#Usage)
 * [Team Members](#Team-Members)
 * [Todo](#Todo)
@@ -22,40 +25,46 @@ This is how the Design Structure should work in our Framework.
 
 ![Desgin Structure](/images/Design%20Structure.png)
 
+##Install:
+You can install the latest available version as follows:
+```shell
+$ pip install ainshamsflow
+```
+
 ## Usage:
 you start using this project my importing the package as follows:
 
 ```python
-import ainshamsflow as asf
+>>> import ainshamsflow as asf
 ```
 
 then you can start creating a model:
 
 ```python
-model = asf.models.Sequential([
-	asf.layers.Dense(30, activation="relu"),
-	asf.layers.Dense(10, activation="relu"),
-	asf.layers.Dense( 1, activation="relu")
-], input_shape=(100,), name='my_model')
-model.print_summary()
+>>> model = asf.models.Sequential([
+... 	asf.layers.Dense(30, activation="relu"),
+...    asf.layers.Dense(10, activation="relu"),
+...    asf.layers.Dense( 1, activation="relu")
+... ], input_shape=(100,), name="my_model")
+>>> model.print_summary()
 ```
 
 then compile and train the model:
 
 ```python
-model.compile(
-	optimizer=asf.optimizers.SGD(),
-	loss=asf.losses.MSE()
-)
-history = model.fit(X, y, epochs=100)
+>>> model.compile(
+... 	optimizer=asf.optimizers.SGD(),
+... 	loss=asf.losses.MSE()
+... )
+>>> history = model.fit(X, y, epochs=100)
 ```
 
 finally you can evaluate, predict and show training statistics:
 
 ```python
-model.evaluate(X, y)
-y_pred = model.predict(X_val)
-history.show()
+>>> model.evaluate(X, y)
+>>> y_pred = model.predict(X_val)
+>>> history.show()
 ```
 
 
@@ -81,33 +90,33 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
 
 ## Todo:
 ### Framework Design:
-- [ ] A Data Module to read and process datasets.
-    - [ ] Dataset
-        - [ ] \_\_init\_\_()
-        - [ ] \_\_str\_\_()
-        - [ ] \_\_bool\_\_()
-        - [ ] \_\_len\_\_()
-        - [ ] \_\_iter\_\_()
-        - [ ] \_\_next\_\_()
-        - [ ] apply()
-        - [ ] numpy()
-        - [ ] batch()
-        - [ ] cardinality()
-        - [ ] concatenate()
-        - [ ] enumerate()
-        - [ ] filter()
-        - [ ] from_iterator()
-        - [ ] map()
-        - [ ] range()
-        - [ ] reduce()
-        - [ ] shuffle()
-        - [ ] skip()
-        - [ ] take()
-        - [ ] unbatch()
-        - [ ] zip()
-    - [ ] ImageDataGenerator
-        - [ ] \_\_init\_\_()
-        - [ ] flow_from_directory()
+- [x] A Data Module to read and process datasets.
+    - [x] Dataset
+        - [x] \_\_init\_\_()
+        - [x] \_\_bool\_\_()
+        - [x] \_\_len\_\_()
+        - [x] \_\_iter\_\_()
+        - [x] \_\_next\_\_()
+        - [x] apply()
+        - [x] numpy()
+        - [x] batch()
+        - [x] cardinality()
+        - [x] concatenate()
+        - [x] copy()
+        - [x] enumerate()
+        - [x] filter()
+        - [x] map()
+        - [x] range()
+        - [x] shuffle()
+        - [x] skip()
+        - [x] split()
+        - [x] take()
+        - [x] unbatch()
+        - [x] add_data()
+        - [x] add_targets()
+    - [x] ImageDataGenerator
+        - [x] \_\_init\_\_()
+        - [x] flow_from_directory()
 
 - [x] A NN Module to design different architectures.
     - [x] Activation Functions
@@ -184,10 +193,10 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
         - [x] Recall
         - [x] F1Score
         
-    - [ ] Regularizers
+    - [x] Regularizers
         - [x] L1
         - [x] L2
-        - [ ] L1L2
+        - [x] L1L2
 
     - [x] Optimization Modules for training
         - [x] SGD

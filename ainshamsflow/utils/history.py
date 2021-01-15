@@ -12,9 +12,11 @@ import matplotlib.pyplot as plt
 class History:
 	"""History Class."""
 
-	def __init__(self, loss, metrics=[]):
+	def __init__(self, loss, metrics=None):
 		"""Initialize empty loss and metrics values and save loss and metrics names."""
 
+		if metrics is None:
+			metrics = []
 		self.loss_values = []
 		self.metric_values = []
 		self.loss_name = loss.__name__
@@ -55,7 +57,7 @@ class History:
 		if self.metric_names and show_metrics:
 			for j, metric_values in enumerate(self.flipped_metrics()):
 				axs[j+1, 0].plot(metric_values)
-				if j==0:
+				if j == 0:
 					axs[j+1, 0].set_title('Model Metrics')
 				axs[j+1, 0].set_ylabel(self.metric_names[j])
 				axs[j+1, 0].set_xlabel('epochs')

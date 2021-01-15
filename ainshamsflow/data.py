@@ -1,4 +1,5 @@
 """Data Module.
+
 In this Module, we include our dataset handling classes. These include a general purpose Dataset class
 and a ImageDataGenerator Class that is more specific to dealing with Images inside directories.
 """
@@ -70,9 +71,11 @@ class Dataset:
 		""" 
 			Divides the dataset into equal parts of size equals batch_size.
 			(Modifies self.data and self.target to be a list of arrays rather than numpy arrays)
+
 			Inputs:
 				- batch_size:		(int)
 				- drop_remainder:	(bool)
+
 			Returns:
 				- self
 		"""
@@ -91,7 +94,6 @@ class Dataset:
 		_, *nt = self.target.shape
 		self.data = self.data.reshape((-1, batch_size, *nd))
 		self.target = self.target.reshape((-1, batch_size, *nt))
-
 
 		self.is_batched = True
 		return self
@@ -115,8 +117,10 @@ class Dataset:
 	def concatenate(self, ds_list):
 		"""
 			Creates a Dataset by concatenating the given dataset with this dataset.
+
 			Inputs:
 				- ds_list: (list) of the datasets to be concatenated
+
 			Returns:
 				- A new concatenated dataset.
 		"""
@@ -162,11 +166,11 @@ class Dataset:
 			return self.data, self.target
 
 	def map(self, function):
-                if self.data is None:
-                        raise UninitializedDatasetError
-                function=np.vectorize(function)
-                return function(self.data)
-        
+		if self.data is None:
+		raise UninitializedDatasetError
+		function=np.vectorize(function)
+		return function(self.data)
+
 	def range(self, *args):
 		self.data = np.arange(*args)
 		return self
@@ -198,9 +202,11 @@ class Dataset:
 
 		"""
 		Splits the dataset into 2 batches (training and testing/validation)
+
 			Inputs:
 				- split_percentage: (float) percentage of the testing/validation data points
 				- shuffle:			(bool)	if true, the data is shuffled before the split
+
 			Returns (as numpy arrays):
 				- If the dataset was initialized with x only:	returns x_train, x_test
 				- If the dataset was initialized with x and y:	returns x_train, y_train, x_test, y_test
@@ -258,6 +264,7 @@ class Dataset:
 		self.target = y
 
 		return self
+
 	def normalize(self,eps):
                 if self.data is None:
                         rise UninitializedDatasetError
@@ -268,6 +275,7 @@ class Dataset:
 
 class ImageDataGenerator(Dataset):
 	"""Image Data Generator Class.
+
 	This class helps in training large amounts of images with minimal memory allocation.
 	"""
 	def __init__(self):
@@ -277,6 +285,7 @@ class ImageDataGenerator(Dataset):
 
 	def flow_from_directory(self, directory):
 		"""Reads Images from a Directory.
+
 		If directory holds images only, this function will use these images as a dataset without any labels.
 		Otherwise, if the directory holds folders of images, it will store the folder names as class names in
 		the class_names attribute. It will then label the images according to their folders.
@@ -336,9 +345,11 @@ class ImageDataGenerator(Dataset):
 
 		"""
 		Splits the dataset into 2 batches (training and testing/validation)
+
 			Inputs:
 				- split_percentage: (float) percentage of the testing/validation data points
 				- shuffle:			(bool)	if true, the data is shuffled before the split
+
 			Returns (as numpy arrays):
 				- If the dataset was initialized with x only:	returns x_train, x_test
 				- If the dataset was initialized with x and y:	returns x_train, y_train, x_test, y_test

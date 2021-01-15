@@ -42,16 +42,16 @@ class Optimizer:
         """Initialize the Learning Rate."""
         self.lr = lr
 
-    def __call__(self, x, y, epochs, batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
+    def __call__(self, ds, epochs, batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
         """Run optimization using Gradient Descent. Return History Object for training session."""
 
-        m = x.shape[0]
-        num_of_batches = int(m / batch_size)
-        rem_batch_size = m - batch_size * num_of_batches
+        m = ds.cardinality()
+
+        if batch_size is not None and 0 < batch_size < m:
+            ds.batch(batch_size)
+
         history = History(loss, metrics)
         if verbose:
-            # print()
-            # print()
             if training:
                 print('Training Model for {} epochs:'.format(epochs))
             else:
@@ -60,41 +60,27 @@ class Optimizer:
         for epoch_num in range(epochs):
             loss_values = []
             metrics_values = []
-            for i in range(num_of_batches):
-                numm = epoch_num*num_of_batches + i
-                batch_x = x[i * batch_size: (i + 1) * batch_size]
-                batch_y = y[i * batch_size: (i + 1) * batch_size]
+            for i, (batch_x, batch_y) in enumerate(ds):
                 loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
-                                                                   loss, metrics, regularizer, training, numm)
+                                                                   loss, metrics, regularizer, training, i)
                 loss_values.append(loss_value)
                 metrics_values.append(metric_values)
 
-            if rem_batch_size:
-                batch_x = x[-rem_batch_size:]
-                batch_y = y[-rem_batch_size:]
-                loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
-                                                                   loss, metrics, regularizer, training,
-                                                                   epochs*num_of_batches + 1)
-                loss_values.append(loss_value)
-                metrics_values.append(metric_values)
-            loss_value = np.array(loss_values).sum()
-            metrics_values = np.array(metrics_values)
-            if metrics:
-                metrics_values = metrics_values.mean(axis=0)
-            history.add(loss_value, metrics_values)
+            loss_values = np.array(loss_values).sum()
+            metrics_values = np.array(metrics_values).mean(axis=0)
+            history.add(loss_values, metrics_values)
             if verbose:
                 if training:
                     print(
                         'Epoch #{:4d}:'.format(epoch_num+1),
-                        '{:s}={:8.4f},'.format(loss.__name__, loss_value),
-                        *['{}={:8.4f},'.format(metric.__name__, metrics_values[j])
-                            for j, metric in enumerate(metrics)]
+                        '{}={:8.4f},'.format(loss.__name__, loss_values),
+                        *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
                     )
                 else:
                     print(
-                        '{}={:8.4f},'.format(loss.__name__, loss_value),
-                        *['{}={:8.4f},'.format(metric.__name__, metrics_values[j])
-                            for j, metric in enumerate(metrics)]
+                        '{}={:8.4f},'.format(loss.__name__, loss_values),
+                        *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
+
                     )
 
         return history
@@ -120,7 +106,7 @@ class Optimizer:
                 da, dw, db = layers[j].diff(da)
                 if layers[j].trainable:
                     if regularization_diff is not None:
-                        dw += regularization_diff[j]
+                        dw = self._add_reg_diff(dw, regularization_diff[j])
                     weights, biases = layers[j].get_weights()
                     updated_weights = self._update(i, weights, dw, layer_num=j, is_weight=True)
                     updated_biases = self._update(i, biases, db, layer_num=j, is_weight=False)
@@ -129,6 +115,16 @@ class Optimizer:
 
     def _update(self, i, weights, dw, layer_num, is_weight):
         raise BaseClassError
+
+    def _add_reg_diff(self, dw, reg_diff):
+        if isinstance(dw, list) and isinstance(reg_diff, list):
+            dw_new = []
+            for single_dw, single_reg_diff in zip(dw, reg_diff):
+                single_dw = self._add_reg_diff(single_dw, single_reg_diff)
+                dw_new.append(single_dw)
+        else:
+            dw_new = dw + reg_diff
+        return dw_new
 
 
 class SGD(Optimizer):

@@ -48,7 +48,7 @@ class Uniform(Initializer):
 
 	def __init__(self, start=0, end=1):
 		if not start < end:
-			raise InvalidRangeError(start, maximum=end)
+			raise InvalidRangeError(start, None, end)
 		self.start = start
 		self.range = end - start
 
@@ -61,7 +61,7 @@ class Normal(Initializer):
 
 	def __init__(self, mean=0, std=1):
 		if not std > 0:
-			raise InvalidRangeError(std, minimum=0)
+			raise InvalidRangeError(std, 0)
 		self.mean = mean
 		self.std = std
 
