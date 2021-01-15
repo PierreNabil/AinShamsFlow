@@ -265,12 +265,11 @@ class Dataset:
 
 		return self
 
-	def normalize(self,eps):
+	def normalize(self):
                 if self.data is None:
                         rise UninitializedDatasetError
-                else:
-                self.data = np.array(self.data)
-                self.data=(self.data-self.data.mean(axis=0))/np.sqrt(self.data.var(axis=0)+eps)
+                self.data=(self.data-self.data.mean(axis=0))/np.sqrt(self.data.var(axis=0)+1e-6)
+		return self
 
 
 class ImageDataGenerator(Dataset):
