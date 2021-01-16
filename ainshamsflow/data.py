@@ -85,7 +85,7 @@ class Dataset:
 		if self.data is None:
 			raise UninitializedDatasetError
 
-		m = self.cardinality()
+		m = self.data.shape[0]
 		remainder = m % batch_size
 
 		self.take(m-remainder)
@@ -100,8 +100,11 @@ class Dataset:
 
 	def unbatch(self):
 		if self.is_batched:
-			n1, n2, *n = x.shape
-			x.reshape((n1*n2, *n))
+			n1d, n2d, *nd = self.data.shape
+			self.data = self.data.reshape((n1d*n2d, *nd))
+			if self.target is not None:
+				n1t, n2t, *nt = self.target.shape
+				self.target = self.target.reshape((n1t*n2t, *nt))
 		return self
 
 	def cardinality(self):
@@ -168,7 +171,7 @@ class Dataset:
 	def map(self, function):
 		if self.data is None:
 			raise UninitializedDatasetError
-		function=np.vectorize(function)
+		function = np.vectorize(function)
 		return function(self.data)
 
 	def range(self, *args):
@@ -268,7 +271,7 @@ class Dataset:
 	def normalize(self):
 		if self.data is None:
 			raise UninitializedDatasetError
-		self.data=(self.data-self.data.mean(axis=0))/np.sqrt(self.data.var(axis=0)+1e-6)
+		self.data = (self.data-self.data.mean(axis=0))/np.sqrt(self.data.var(axis=0)+1e-6)
 		return self
 
 

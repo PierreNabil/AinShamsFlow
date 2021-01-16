@@ -8,6 +8,7 @@ x = np.random.rand(15, 10, 10, 3)
 y = np.random.randint(0, 5, (15, 1))
 
 ds = asf.data.Dataset(x,y)
+ds.batch(3)
 
 conv_part = asf.models.Sequential([
 	asf.layers.Conv2D(5, 3, padding='same', activation='relu'),
