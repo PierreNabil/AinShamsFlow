@@ -15,6 +15,20 @@ def true_one_hot(y_true, n_c):
 	return np.squeeze(np.eye(n_c)[y_true]).reshape((m, -1))
 
 
+def confution_matrix(y_pred_1h, y_true_1h):
+	y_pred = y_pred_1h.argmax(axis=1)
+	y_true = y_true_1h.argmax(axis=1)
+
+	m, n_c = y_pred_1h.shape
+
+	cm = np.zeros((n_c, n_c))
+
+	for i in range(m):
+		cm[y_true[i]][y_pred[i]] += 1
+
+	return cm
+
+
 def get_dataset_from_xy(x, y):
 	if x is None:
 		raise RunningWithoutDataError

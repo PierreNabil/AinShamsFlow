@@ -142,7 +142,7 @@ class BinaryCrossentropy(Loss):
 
     def diff(self, y_pred, y_true):
         m = y_pred.shape[0]
-        return (y_pred - y_true) / m
+        return (y_pred - y_true)
 
 
 class CategoricalCrossentropy(Loss):
@@ -153,7 +153,7 @@ class CategoricalCrossentropy(Loss):
 
     def diff(self, y_pred, y_true):
         m = y_true.shape[0]
-        return (y_pred - y_true) / m
+        return (y_pred - y_true)
 
 
 class SparseCategoricalCrossentropy(Loss):
@@ -162,10 +162,10 @@ class SparseCategoricalCrossentropy(Loss):
     def __call__(self, y_pred, y_true):
         n_c = y_pred.shape[-1]
         y_true = true_one_hot(y_true, n_c)
-        return -np.mean(np.log(np.max(y_true * y_pred, axis=1) + 1e-6))
+        return -np.mean(np.log(np.max(y_true * y_pred, axis=1)))
 
     def diff(self, y_pred, y_true):
         m = y_pred.shape[0]
         n_c = y_pred.shape[-1]
         y_true = true_one_hot(y_true, n_c)
-        return (y_pred - y_true) / m
+        return (y_pred - y_true)

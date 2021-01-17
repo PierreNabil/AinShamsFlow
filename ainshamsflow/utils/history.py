@@ -45,7 +45,7 @@ class History:
 		fig, axs = plt.subplots(num_of_plots, 1, squeeze=False, figsize=(8, 3*num_of_plots))
 
 		# Loss Plots:
-		epochs = np.arange(len(self.loss_values)) + 1
+		epochs = np.arange(len(self.loss_values))
 		axs[0, 0].plot(epochs, self.loss_values)
 		axs[0, 0].set_title('Model Loss')
 		axs[0, 0].set_ylabel(self.loss_name)
@@ -61,5 +61,9 @@ class History:
 					axs[j+1, 0].set_title('Model Metrics')
 				axs[j+1, 0].set_ylabel(self.metric_names[j])
 				axs[j+1, 0].set_xlabel('epochs')
-				axs[j+1, 0].set_ylim(0, 1)
+				if len(self.metric_names[j]) == 2:
+					bottom, top = axs[j+1, 0].get_ylim()
+					axs[j+1, 0].set_ylim(0, top)
+				else:
+					axs[j+1, 0].set_ylim(0, 1)
 		plt.show()

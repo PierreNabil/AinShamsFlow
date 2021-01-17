@@ -154,32 +154,28 @@ class Sequential(Model):
 			input_shape = layer.add_input_shape_to_layers(input_shape)
 
 		self.n_out = self.layers[-1].n_out
-		# print(self.n_out)
 		n_out = [str(ch) for ch in self.n_out]
 		self.output_shape = '(None' + (',{:4}'*len(n_out)).format(*n_out) + ')'
 
-	def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True) :
+	def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True):
 		"""Fit the model to the training data."""
 
 		ds = get_dataset_from_xy(x, y)
 
-		if self.optimizer is None :
+		if self.optimizer is None:
 			raise UncompiledModelError
 		return self.optimizer(ds, epochs, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
 							  verbose=verbose, training=True)
 
-	def evaluate(self, x, y=None, batch_size=None, verbose=True) :
+	def evaluate(self, x, y=None, batch_size=None, verbose=True):
 		"""Evaluate the model on validation data."""
 
 		ds = get_dataset_from_xy(x, y)
 
-		if self.optimizer is None :
+		if self.optimizer is None:
 			raise UncompiledModelError
-		history = self.optimizer(ds, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
+		return self.optimizer(ds, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
 								 verbose=verbose, training=False)
-		loss_value = np.mean(history.loss_values)
-		metric_values = history.flipped_metrics()
-		return loss_value, metric_values
 
 	def add_layer(self, layer):
 		"""Add a new layer to the network."""

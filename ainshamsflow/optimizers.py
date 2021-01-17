@@ -6,6 +6,7 @@ Stocastic Gradient Descent (SGD).
 
 import numpy as np
 
+from ainshamsflow.metrics import Metric
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
 from ainshamsflow.utils.history import History
 
@@ -51,11 +52,43 @@ class Optimizer:
             ds.batch(batch_size)
 
         history = History(loss, metrics)
+        loss_values = []
+        metrics_values = []
+
         if verbose:
             if training:
                 print('Training Model for {} epochs:'.format(epochs))
             else:
                 print('Evaluating Model:')
+
+        for i, (batch_x, batch_y) in enumerate(ds):
+            loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                               loss, metrics, regularizer, False, i)
+            loss_values.append(loss_value)
+            metrics_values.append(metric_values)
+
+        loss_values = np.array(loss_values).sum()
+        metrics_values = np.array(metrics_values).mean(axis=0)
+
+        if verbose:
+            if training:
+                print(
+                    'Epoch #{:4d}:'.format(0),
+                    '{}={:8.4f},'.format(loss.__name__, loss_values),
+                    *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
+                )
+                history.add(loss_values, metrics_values)
+            else:
+                print(
+                    '{}={:8.4f},'.format(loss.__name__, loss_values),
+                    *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
+                )
+
+        if not training:
+            if verbose:
+                return
+            else:
+                return loss_values, metrics_values
 
         for epoch_num in range(epochs):
             loss_values = []
@@ -70,18 +103,11 @@ class Optimizer:
             metrics_values = np.array(metrics_values).mean(axis=0)
             history.add(loss_values, metrics_values)
             if verbose:
-                if training:
-                    print(
-                        'Epoch #{:4d}:'.format(epoch_num+1),
-                        '{}={:8.4f},'.format(loss.__name__, loss_values),
-                        *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
-                    )
-                else:
-                    print(
-                        '{}={:8.4f},'.format(loss.__name__, loss_values),
-                        *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
-
-                    )
+                print(
+                    'Epoch #{:4d}:'.format(epoch_num+1),
+                    '{}={:8.4f},'.format(loss.__name__, loss_values),
+                    *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
+                )
 
         return history
 
@@ -96,8 +122,10 @@ class Optimizer:
         regularization_term = 0 if regularizer is None else regularizer(weights_list, m)
         loss_value = loss(batch_a, batch_y) + regularization_term
         metric_values = []
-        for metric in metrics:
-            metric_values.append(metric(batch_a, batch_y))
+        if metrics:
+            Metric.calc_confusion_matrix(batch_a, batch_y)
+            for metric in metrics:
+                metric_values.append(metric())
         # Backward Pass
         regularization_diff = None if regularizer is None else regularizer.diff(weights_list, m)
         da = loss.diff(batch_a, batch_y)
