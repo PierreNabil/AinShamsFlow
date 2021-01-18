@@ -24,7 +24,6 @@ class Dataset:
 				raise UnsupportedShapeError(x.shape[0], y.shape[0])
 		self.is_batched = False
 
-
 	def __bool__(self):
 		return self.data is not None
 

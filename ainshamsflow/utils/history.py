@@ -68,18 +68,19 @@ class History:
 			num_of_plots *= 2
 
 			fig, axs = plt.subplots(num_of_plots, 1, squeeze=False, figsize=(8, 3 * num_of_plots))
+			fig.patch.set_facecolor('w')
 
 			# Loss Plots:
 
 			axs[0, 0].plot(self.loss_values)
 			axs[0, 0].set_title('Model Loss')
-			axs[0, 0].set_ylabel(self.loss_name)
+			axs[0, 0].set_ylabel('loss')
 			bottom, top = axs[0, 0].get_ylim()
 			axs[0, 0].set_ylim(0, top)
 			axs[0, 0].xaxis.set_major_locator(MaxNLocator(integer=True))
 
 			axs[1, 0].plot(self.val_loss_values)
-			axs[1, 0].set_ylabel('val_' + self.loss_name)
+			axs[1, 0].set_ylabel('val_loss')
 			axs[1, 0].set_xlabel('epochs')
 			bottom, top = axs[1, 0].get_ylim()
 			axs[1, 0].set_ylim(0, top)
@@ -116,11 +117,12 @@ class History:
 			num_of_plots = len(self.metric_names) + 1 if show_metrics else 1
 
 			fig, axs = plt.subplots(num_of_plots, 1, squeeze=False, figsize=(8, 3*num_of_plots))
+			fig.patch.set_facecolor('w')
 
 			# Loss Plots:
 			axs[0, 0].plot(self.loss_values)
 			axs[0, 0].set_title('Model Loss')
-			axs[0, 0].set_ylabel(self.loss_name)
+			axs[0, 0].set_ylabel('loss')
 			axs[0, 0].set_xlabel('epochs')
 			bottom, top = axs[0, 0].get_ylim()
 			axs[0, 0].set_ylim(0, top)

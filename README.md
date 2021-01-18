@@ -12,9 +12,13 @@
 * [Todo](#Todo)
 
 ## Project Description:
-AinShamsFlow (asf) is a Deep Learning Framework built by our [Team](#Team-Members) from Ain Shams University in December 2020.
+AinShamsFlow (asf) is a Deep Learning Framework built by our [Team](#Team-Members)
+from Ain Shams University during December 2020 - January 2021.
+
 The Design and Interface is inspired heavily from Keras and TensorFlow.
-However, we only implement everything from scratch using only simple libraries such as numpy and matplotlib.
+
+However, we only implement everything from scratch using only simple libraries
+such as numpy and matplotlib.
 
 ## Project Structure:
 The Design of all parts can be seen in the following UML Diagram.
@@ -25,7 +29,7 @@ This is how the Design Structure should work in our Framework.
 
 ![Desgin Structure](/images/Design%20Structure.png)
 
-##Install:
+## Install:
 You can install the latest available version as follows:
 ```shell
 $ pip install ainshamsflow
@@ -42,10 +46,10 @@ then you can start creating a model:
 
 ```python
 >>> model = asf.models.Sequential([
-... 	asf.layers.Dense(30, activation="relu"),
-...    asf.layers.Dense(10, activation="relu"),
-...    asf.layers.Dense( 1, activation="relu")
-... ], input_shape=(100,), name="my_model")
+...     asf.layers.Dense(300, activation="relu"),
+...     asf.layers.Dense(100, activation="relu"),
+...     asf.layers.Dense( 10, activation="softmax")
+... ], input_shape=(784,), name="my_model")
 >>> model.print_summary()
 ```
 
@@ -53,45 +57,42 @@ then compile and train the model:
 
 ```python
 >>> model.compile(
-... 	optimizer=asf.optimizers.SGD(),
-... 	loss=asf.losses.MSE()
+... 	optimizer=asf.optimizers.SGD(lr=0.01),
+... 	loss='sparsecategoricalcrossentropy',
+...     metrics=['accuracy']
 ... )
->>> history = model.fit(X, y, epochs=100)
+>>> history = model.fit(X_train, y_train, epochs=100)
 ```
 
 finally you can evaluate, predict and show training statistics:
 
 ```python
->>> model.evaluate(X, y)
->>> y_pred = model.predict(X_val)
 >>> history.show()
+>>> model.evaluate(X_valid, y_valid)
+>>> y_pred = model.predict(X_test)
 ```
 
 
-A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipynb](/demo.ipynb)
+A more elaborate example usage can be found in [main.py](/main.py) or check out this 
+[demo notebook](https://colab.research.google.com/drive/1sqEeUUkG3bTplhlLb73QCGUbaubX2aXi?usp=sharing).
 
 ## Team Members:
 * [Pierre Nabil](https://github.com/PierreNabil)
-
 * [Ahmed Taha](https://github.com/atf01)
-
 * [Girgis Micheal](https://github.com/girgismicheal)
-
 * [Hazzem Mohammed](https://github.com/hazzum)
-
 * [Ibrahim Shoukry](https://github.com/IbrahimShoukry512)
-
 * [John Bahaa](https://github.com/John-Bahaa)
-
 * [Michael Magdy](https://github.com/Michael-M-Mike)
-
 * [Ziad Tarek](https://github.com/ziadtarekk)
 
 
 ## Todo:
 ### Framework Design:
 - [x] A Data Module to read and process datasets.
+
     - [x] Dataset
+    
         - [x] \_\_init\_\_()
         - [x] \_\_bool\_\_()
         - [x] \_\_len\_\_()
@@ -114,12 +115,17 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
         - [x] unbatch()
         - [x] add_data()
         - [x] add_targets()
+        - [x] normalize()
+        
     - [x] ImageDataGenerator
+    
         - [x] \_\_init\_\_()
         - [x] flow_from_directory()
 
 - [x] A NN Module to design different architectures.
+
     - [x] Activation Functions
+    
         - [x] Linear
         - [x] Sigmoid
         - [x] Hard Sigmoid
@@ -136,41 +142,43 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
 
     - [x] Layers
     
-        DNN Layers:
-        - [x] Dense
-        - [x] BatchNorm
-        - [x] Dropout
+        - DNN Layers:
+            - [x] Dense
+            - [x] BatchNorm
+            - [x] Dropout
         
-        CNN Layers 1D: (optional)
-        - [x] Conv
-        - [x] Pool (Avg and Max)
-        - [x] GlobalPool (Avg and Max)
-        - [x] Upsample
+        - CNN Layers 1D: (optional)
+            - [x] Conv
+            - [x] Pool (Avg and Max)
+            - [x] GlobalPool (Avg and Max)
+            - [x] Upsample
         
-        CNN Layers 2D:
-        - [x] Conv
-        - [x] Pool (Avg and Max)
-        - [x] GlobalPool (Avg and Max)
-        - [x] Upsample
+        - CNN Layers 2D:
+            - [x] Conv
+            - [x] Pool (Avg and Max)
+            - [x] GlobalPool (Avg and Max)
+            - [x] Upsample
         
-        CNN Layers 3D: (optional)
-        - [x] Conv
-        - [x] Pool (Avg and Max)
-        - [x] GlobalPool (Avg and Max)
-        - [x] Upsample
+        - CNN Layers 3D: (optional)
+            - [x] Conv
+            - [x] Pool (Avg and Max)
+            - [x] GlobalPool (Avg and Max)
+            - [x] Upsample
         
-        Other Extra Functionality:
-        - [x] Flatten
-        - [x] Activation
-        - [x] Reshape
+        - Other Extra Functionality:
+            - [x] Flatten
+            - [x] Activation
+            - [x] Reshape
 
     - [x] Initializers
+    
         - [x] Constant
         - [x] Uniform
         - [x] Normal
         - [x] Identity
         
     - [x] Losses
+    
         - [x] MSE  (Mean Squared Error)
         - [x] MAE  (Mean Absolute Error)
         - [x] MAPE (Mean Absolute Percentage Error)
@@ -184,6 +192,7 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
         - [x] SvmHingeLoss
 
     - [x] Evaluation Metrics
+    
         - [x] Accuracy
         - [x] TP (True Positives)
         - [x] TN (True Negatives)
@@ -194,11 +203,13 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
         - [x] F1Score
         
     - [x] Regularizers
+    
         - [x] L1
         - [x] L2
-        - [x] L1L2
+        - [x] L1_L2
 
     - [x] Optimization Modules for training
+    
         - [x] SGD
         - [x] Momentum
         - [x] AdaGrad
@@ -207,14 +218,20 @@ A more elaborate example usage can be found in [main.py](/main.py) or [demo.ipyn
         - [x] Adam
 
     - [x] A Visualization Modules to track the training and testing processes
-        - [x] History
-        - [x] Verbosity
+    
+        - [x] History Class for showing training statistics
+        - [x] ```verbose``` parameter in training
 
     - [x] A utils module for reading and saving models
     - [ ] Adding CUDA support
-    - [ ] Publish to PyPI
+    - [x] Publish to PyPI
+    - [ ] Creating a Documentation for the Project
 
 ### Example Usage:
+This part can be found in the
+[demo notebook](https://colab.research.google.com/drive/1sqEeUUkG3bTplhlLb73QCGUbaubX2aXi?usp=sharing)
+mentioned above.
+
 - [x] Download and Split a dataset (MNIST or CIFAR-10) to training, validation and testing
 - [x] Construct an Architecture ([LeNet](https://engmrk.com/lenet-5-a-classic-cnn-architecture/) 
 or [AlexNet](https://dl.acm.org/doi/abs/10.1145/3065386)) and make sure all of its components are 

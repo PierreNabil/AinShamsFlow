@@ -92,14 +92,14 @@ class Optimizer:
                 print('Epoch #{:4d}:'.format(0), end=' ')
 
             print(
-                '{}={:8.4f},'.format(loss.__name__, loss_values),
+                '{}={:8.4f},'.format('loss', loss_values),
                 *['{}={:8.4f},'.format(metric.__name__, metrics_values[j])
                   for j, metric in enumerate(metrics)],
                 end=' '
             )
             if ds_valid is not None:
                 print(
-                    '{}={:8.4f},'.format('val_' + loss.__name__, val_loss_values),
+                    '{}={:8.4f},'.format('val_loss', val_loss_values),
                     *['{}={:8.4f},'.format('val_' + metric.__name__, val_metrics_values[j])
                       for j, metric in enumerate(metrics)],
                     end=' '
@@ -145,13 +145,13 @@ class Optimizer:
             if verbose:
                 print(
                     'Epoch #{:4d}:'.format(epoch_num+1),
-                    '{}={:8.4f},'.format(loss.__name__, loss_values),
+                    '{}={:8.4f},'.format('loss', loss_values),
                     *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)],
                     end=' '
                 )
                 if ds_valid is not None:
                     print(
-                        '{}={:8.4f},'.format('val_' + loss.__name__, val_loss_values),
+                        '{}={:8.4f},'.format('val_loss', val_loss_values),
                         *['{}={:8.4f},'.format('val_' + metric.__name__, val_metrics_values[j])
                           for j, metric in enumerate(metrics)],
                         end=' '
