@@ -17,7 +17,6 @@ import pandas as pd
 
 
 K_train = pd.read_csv('../train.csv').to_numpy()
-# ds_split = 40000
 ds_split = 40000
 X_train = K_train[:ds_split, 1:] / 255
 X_valid = K_train[ds_split:, 1:] / 255
@@ -55,7 +54,8 @@ model.compile(
 
 history = model.fit(
 	ds_train,
-	epochs=20
+	epochs=10,
+	valid_data=ds_valid
 )
 history.show()
 

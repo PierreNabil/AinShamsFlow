@@ -157,14 +157,29 @@ class Sequential(Model):
 		n_out = [str(ch) for ch in self.n_out]
 		self.output_shape = '(None' + (',{:4}'*len(n_out)).format(*n_out) + ')'
 
-	def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True):
+	def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, shuffle=True,
+			valid_split=None, valid_data=None, valid_batch_size=None):
 		"""Fit the model to the training data."""
-
-		ds = get_dataset_from_xy(x, y)
 
 		if self.optimizer is None:
 			raise UncompiledModelError
-		return self.optimizer(ds, epochs, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
+
+		ds_train = get_dataset_from_xy(x, y)
+
+		if valid_data is not None:
+			if isinstance(valid_data, tuple):
+				ds_valid = get_dataset_from_xy(*valid_data)
+			else:
+				ds_valid = get_dataset_from_xy(valid_data, None)
+		elif valid_split is not None:
+			ds_train, ds_valid = ds_train.split(valid_split)
+		else:
+			ds_valid = None
+
+		if shuffle:
+			ds_train.shuffle()
+
+		return self.optimizer(ds_train, ds_valid, epochs, batch_size, valid_batch_size, self.layers, self.loss, self.metrics, self.regularizer,
 							  verbose=verbose, training=True)
 
 	def evaluate(self, x, y=None, batch_size=None, verbose=True):
@@ -174,7 +189,7 @@ class Sequential(Model):
 
 		if self.optimizer is None:
 			raise UncompiledModelError
-		return self.optimizer(ds, 1, batch_size, self.layers, self.loss, self.metrics, self.regularizer,
+		return self.optimizer(ds, None,  1, batch_size, None, self.layers, self.loss, self.metrics, self.regularizer,
 								 verbose=verbose, training=False)
 
 	def add_layer(self, layer):

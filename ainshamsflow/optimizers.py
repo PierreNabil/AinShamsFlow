@@ -43,17 +43,24 @@ class Optimizer:
         """Initialize the Learning Rate."""
         self.lr = lr
 
-    def __call__(self, ds, epochs, batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
+    def __call__(self, ds_train, ds_valid, epochs, train_batch_size, valid_batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
         """Run optimization using Gradient Descent. Return History Object for training session."""
 
-        m = ds.cardinality()
+        m = ds_train.cardinality()
 
-        if batch_size is not None and 0 < batch_size < m:
-            ds.batch(batch_size)
+        if train_batch_size is not None:
+            ds_train.batch(train_batch_size)
 
-        history = History(loss, metrics)
+        if ds_valid is not None:
+            if valid_batch_size is not None:
+                ds_valid.batch(train_batch_size)
+
+        history = History(loss, metrics, ds_valid is not None)
         loss_values = []
         metrics_values = []
+
+        val_loss_values = []
+        val_metrics_values = []
 
         if verbose:
             if training:
@@ -61,7 +68,7 @@ class Optimizer:
             else:
                 print('Evaluating Model:')
 
-        for i, (batch_x, batch_y) in enumerate(ds):
+        for i, (batch_x, batch_y) in enumerate(ds_train):
             loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
                                                                loss, metrics, regularizer, False, i)
             loss_values.append(loss_value)
@@ -70,19 +77,37 @@ class Optimizer:
         loss_values = np.array(loss_values).sum()
         metrics_values = np.array(metrics_values).mean(axis=0)
 
+        if ds_valid is not None:
+            for i, (batch_x, batch_y) in enumerate(ds_valid):
+                val_loss_value, val_metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                                   loss, metrics, regularizer, False, i)
+                val_loss_values.append(val_loss_value)
+                val_metrics_values.append(val_metric_values)
+
+            val_loss_values = np.array(val_loss_values).sum()
+            val_metrics_values = np.array(val_metrics_values).mean(axis=0)
+
         if verbose:
             if training:
+                print('Epoch #{:4d}:'.format(0), end=' ')
+
+            print(
+                '{}={:8.4f},'.format(loss.__name__, loss_values),
+                *['{}={:8.4f},'.format(metric.__name__, metrics_values[j])
+                  for j, metric in enumerate(metrics)],
+                end=' '
+            )
+            if ds_valid is not None:
                 print(
-                    'Epoch #{:4d}:'.format(0),
-                    '{}={:8.4f},'.format(loss.__name__, loss_values),
-                    *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
+                    '{}={:8.4f},'.format('val_' + loss.__name__, val_loss_values),
+                    *['{}={:8.4f},'.format('val_' + metric.__name__, val_metrics_values[j])
+                      for j, metric in enumerate(metrics)],
+                    end=' '
                 )
-                history.add(loss_values, metrics_values)
-            else:
-                print(
-                    '{}={:8.4f},'.format(loss.__name__, loss_values),
-                    *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
-                )
+            print()
+
+            if training:
+                history.add(loss_values, metrics_values, val_loss_values, val_metrics_values)
 
         if not training:
             if verbose:
@@ -93,7 +118,10 @@ class Optimizer:
         for epoch_num in range(epochs):
             loss_values = []
             metrics_values = []
-            for i, (batch_x, batch_y) in enumerate(ds):
+            val_loss_values = []
+            val_metrics_values = []
+
+            for i, (batch_x, batch_y) in enumerate(ds_train):
                 loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
                                                                    loss, metrics, regularizer, training, i)
                 loss_values.append(loss_value)
@@ -101,13 +129,34 @@ class Optimizer:
 
             loss_values = np.array(loss_values).sum()
             metrics_values = np.array(metrics_values).mean(axis=0)
-            history.add(loss_values, metrics_values)
+
+            if ds_valid is not None :
+                for i, (batch_x, batch_y) in enumerate(ds_valid):
+                    val_loss_value, val_metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                                               loss, metrics, regularizer, False, i)
+                    val_loss_values.append(val_loss_value)
+                    val_metrics_values.append(val_metric_values)
+
+                val_loss_values = np.array(val_loss_values).sum()
+                val_metrics_values = np.array(val_metrics_values).mean(axis=0)
+
+            history.add(loss_values, metrics_values, val_loss_values, val_metrics_values)
+
             if verbose:
                 print(
                     'Epoch #{:4d}:'.format(epoch_num+1),
                     '{}={:8.4f},'.format(loss.__name__, loss_values),
-                    *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)]
+                    *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)],
+                    end=' '
                 )
+                if ds_valid is not None:
+                    print(
+                        '{}={:8.4f},'.format('val_' + loss.__name__, val_loss_values),
+                        *['{}={:8.4f},'.format('val_' + metric.__name__, val_metrics_values[j])
+                          for j, metric in enumerate(metrics)],
+                        end=' '
+                    )
+                print()
 
         return history
 
