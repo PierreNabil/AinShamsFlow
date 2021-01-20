@@ -6,7 +6,7 @@
 ## Contents:
 * [Project Description](#Project-Description)
 * [Project Structure](#Project-Structure)
-* [install](#Install)
+* [Install](#Install)
 * [Usage](#Usage)
 * [Team Members](#Team-Members)
 * [Todo](#Todo)

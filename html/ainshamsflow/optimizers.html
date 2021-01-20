@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.2" />
+<title>ainshamsflow.optimizers API documentation</title>
+<meta name="description" content="Optimizers Module …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>ainshamsflow.optimizers</code></h1>
+</header>
+<section id="section-intro">
+<p>Optimizers Module.</p>
+<p>In this Module, we include our optimization algorithms such as
+Stocastic Gradient Descent (SGD).</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Optimizers Module.
+
+In this Module, we include our optimization algorithms such as
+Stocastic Gradient Descent (SGD).
+&#34;&#34;&#34;
+
+import numpy as np
+
+from ainshamsflow.metrics import Metric
+from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
+from ainshamsflow.utils.history import History
+
+
+def get(opt_name):
+    &#34;&#34;&#34;Get any Optimizer in this Module by name.&#34;&#34;&#34;
+
+    opts = [SGD, Momentum, AdaDelta, RMSProp, Adam, AdaDelta]
+    for opt in opts:
+        if opt.__name__.lower() == opt_name.lower():
+            return opt()
+    else:
+        raise NameNotFoundError(opt_name, __name__)
+
+
+def _check_dims(weights, dw):
+    if weights.shape != dw.shape:
+        raise UnsupportedShapeError(dw.shape, weights.shape)
+
+
+class Optimizer:
+    &#34;&#34;&#34;Optimiser Base Class.
+
+    Used to generalize learning using Gradient Descent.
+
+    Creating a new optimizer is as easy as creating a new class that
+    inherits from this class.
+    You then have to add any extra parameters in your constructor
+    (while still calling this class&#39; constructor) and redefine the
+    _update() method.
+    &#34;&#34;&#34;
+
+    def __init__(self, lr=0.01):
+        &#34;&#34;&#34;Initialize the Learning Rate.&#34;&#34;&#34;
+        self.lr = lr
+
+    def __call__(self, ds_train, ds_valid, epochs, train_batch_size, valid_batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
+        &#34;&#34;&#34;Run optimization using Gradient Descent. Return History Object for training session.&#34;&#34;&#34;
+
+        m = ds_train.cardinality()
+
+        if train_batch_size is not None:
+            ds_train.batch(train_batch_size)
+
+        if ds_valid is not None:
+            if valid_batch_size is not None:
+                ds_valid.batch(train_batch_size)
+
+        history = History(loss, metrics, ds_valid is not None)
+        loss_values = []
+        metrics_values = []
+
+        val_loss_values = []
+        val_metrics_values = []
+
+        if verbose:
+            if training:
+                print(&#39;Training Model for {} epochs:&#39;.format(epochs))
+            else:
+                print(&#39;Evaluating Model:&#39;)
+
+        for i, (batch_x, batch_y) in enumerate(ds_train):
+            loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                               loss, metrics, regularizer, False, i)
+            loss_values.append(loss_value)
+            metrics_values.append(metric_values)
+
+        loss_values = np.array(loss_values).sum()
+        metrics_values = np.array(metrics_values).mean(axis=0)
+
+        if ds_valid is not None:
+            for i, (batch_x, batch_y) in enumerate(ds_valid):
+                val_loss_value, val_metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                                   loss, metrics, regularizer, False, i)
+                val_loss_values.append(val_loss_value)
+                val_metrics_values.append(val_metric_values)
+
+            val_loss_values = np.array(val_loss_values).sum()
+            val_metrics_values = np.array(val_metrics_values).mean(axis=0)
+
+        if verbose:
+            if training:
+                print(&#39;Epoch #{:4d}:&#39;.format(0), end=&#39; &#39;)
+
+            print(
+                &#39;{}={:8.4f},&#39;.format(&#39;loss&#39;, loss_values),
+                *[&#39;{}={:8.4f},&#39;.format(metric.__name__, metrics_values[j])
+                  for j, metric in enumerate(metrics)],
+                end=&#39; &#39;
+            )
+            if ds_valid is not None:
+                print(
+                    &#39;{}={:8.4f},&#39;.format(&#39;val_loss&#39;, val_loss_values),
+                    *[&#39;{}={:8.4f},&#39;.format(&#39;val_&#39; + metric.__name__, val_metrics_values[j])
+                      for j, metric in enumerate(metrics)],
+                    end=&#39; &#39;
+                )
+            print()
+
+            if training:
+                history.add(loss_values, metrics_values, val_loss_values, val_metrics_values)
+
+        if not training:
+            if verbose:
+                return
+            else:
+                return loss_values, metrics_values
+
+        for epoch_num in range(epochs):
+            loss_values = []
+            metrics_values = []
+            val_loss_values = []
+            val_metrics_values = []
+
+            for i, (batch_x, batch_y) in enumerate(ds_train):
+                loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                                   loss, metrics, regularizer, training, i)
+                loss_values.append(loss_value)
+                metrics_values.append(metric_values)
+
+            loss_values = np.array(loss_values).sum()
+            metrics_values = np.array(metrics_values).mean(axis=0)
+
+            if ds_valid is not None :
+                for i, (batch_x, batch_y) in enumerate(ds_valid):
+                    val_loss_value, val_metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                                               loss, metrics, regularizer, False, i)
+                    val_loss_values.append(val_loss_value)
+                    val_metrics_values.append(val_metric_values)
+
+                val_loss_values = np.array(val_loss_values).sum()
+                val_metrics_values = np.array(val_metrics_values).mean(axis=0)
+
+            history.add(loss_values, metrics_values, val_loss_values, val_metrics_values)
+
+            if verbose:
+                print(
+                    &#39;Epoch #{:4d}:&#39;.format(epoch_num+1),
+                    &#39;{}={:8.4f},&#39;.format(&#39;loss&#39;, loss_values),
+                    *[&#39;{}={:8.4f},&#39;.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)],
+                    end=&#39; &#39;
+                )
+                if ds_valid is not None:
+                    print(
+                        &#39;{}={:8.4f},&#39;.format(&#39;val_loss&#39;, val_loss_values),
+                        *[&#39;{}={:8.4f},&#39;.format(&#39;val_&#39; + metric.__name__, val_metrics_values[j])
+                          for j, metric in enumerate(metrics)],
+                        end=&#39; &#39;
+                    )
+                print()
+
+        return history
+
+    def _single_iteration(self, batch_x, batch_y, m, layers, loss, metrics, regularizer, training, i):
+        &#34;&#34;&#34;Run optimization for a single batch. Return loss value and metric values for iteration.&#34;&#34;&#34;
+
+        weights_list = [layer.get_weights()[0] for layer in layers]
+        # Forward Pass
+        batch_a = batch_x
+        for j, layer in enumerate(layers):
+            batch_a = layer(batch_a, training)
+        regularization_term = 0 if regularizer is None else regularizer(weights_list, m)
+        loss_value = loss(batch_a, batch_y) + regularization_term
+        metric_values = []
+        if metrics:
+            Metric.calc_confusion_matrix(batch_a, batch_y)
+            for metric in metrics:
+                metric_values.append(metric())
+        # Backward Pass
+        regularization_diff = None if regularizer is None else regularizer.diff(weights_list, m)
+        da = loss.diff(batch_a, batch_y)
+        if training:
+            for j in reversed(range(len(layers))):
+                da, dw, db = layers[j].diff(da)
+                if layers[j].trainable:
+                    if regularization_diff is not None:
+                        dw = self._add_reg_diff(dw, regularization_diff[j])
+                    weights, biases = layers[j].get_weights()
+                    updated_weights = self._update(i, weights, dw, layer_num=j, is_weight=True)
+                    updated_biases = self._update(i, biases, db, layer_num=j, is_weight=False)
+                    layers[j].set_weights(updated_weights, updated_biases)
+        return loss_value, metric_values
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        raise BaseClassError
+
+    def _add_reg_diff(self, dw, reg_diff):
+        if isinstance(dw, list) and isinstance(reg_diff, list):
+            dw_new = []
+            for single_dw, single_reg_diff in zip(dw, reg_diff):
+                single_dw = self._add_reg_diff(single_dw, single_reg_diff)
+                dw_new.append(single_dw)
+        else:
+            dw_new = dw + reg_diff
+        return dw_new
+
+
+class SGD(Optimizer):
+    &#34;&#34;&#34;Stochastic Gradient Descent Algorithm.&#34;&#34;&#34;
+
+    __name__ = &#39;SGD&#39;
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        &#34;&#34;&#34;Update step for SGD.&#34;&#34;&#34;
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            return weights - self.lr * dw
+
+
+class Momentum(Optimizer):
+    &#34;&#34;&#34;SGD with Momentum&#34;&#34;&#34;
+
+    __name__ = &#39;Momentum&#39;
+
+    def __init__(self, lr=0.01, beta=0.9):
+        super().__init__(lr)
+        self.beta = beta
+        self.momentum = {}
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            # check for first time:
+            layer_id = &#34;{}{}&#34;.format(layer_num, &#39;w&#39; if is_weight else &#39;b&#39;)
+            if layer_id not in self.momentum.keys():
+                self.momentum[layer_id] = np.zeros(weights.shape)
+
+            # update step
+            self.momentum[layer_id] = self.beta * self.momentum[layer_id] + (1 - self.beta) * dw
+
+            return weights - self.lr * self.momentum[layer_id]
+
+
+class AdaGrad(Optimizer):
+    &#34;&#34;&#34;AdaGrad&#34;&#34;&#34;
+
+    __name__ = &#39;AdaGrad&#39;
+
+    def __init__(self, lr=0.01, beta=0.9):
+        super().__init__(lr)
+        self.beta = beta
+        self.RMS = {}
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            # check for first time:
+            layer_id = &#34;{}{}&#34;.format(layer_num, &#39;w&#39; if is_weight else &#39;b&#39;)
+            if layer_id not in self.RMS.keys():
+                self.RMS[layer_id] = np.zeros(weights.shape)
+
+            # update step
+            self.RMS[layer_id] = self.RMS[layer_id] + np.square(dw)
+
+            return weights - self.lr * dw / (np.sqrt(self.RMS[layer_id]) + 1e-8)
+
+
+class AdaDelta(Optimizer):
+    &#34;&#34;&#34;AdaDelta&#34;&#34;&#34;
+
+    __name__ = &#39;AdaDelta&#39;
+
+    def __init__(self, lr=0.01, beta=0.9):
+        super().__init__(lr)
+        self.beta = beta
+        self.delta = {}
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            # check for first time:
+            layer_id = &#34;{}{}&#34;.format(layer_num, &#39;w&#39; if is_weight else &#39;b&#39;)
+            if layer_id not in self.delta.keys():
+                self.delta[layer_id] = np.zeros(weights.shape)
+
+            # update step
+            self.delta[layer_id] = self.beta * self.delta[layer_id] + (1 - self.beta) * np.square(dw)
+
+            return weights - self.lr * dw / (np.sqrt(self.delta[layer_id]) + 1e-8)
+
+
+class RMSProp(Optimizer):
+    &#34;&#34;&#34;RMSProp&#34;&#34;&#34;
+
+    __name__ = &#39;RMSProp&#39;
+
+    def __init__(self, lr=0.01, beta=0.9):
+        super().__init__(lr)
+        self.beta = beta
+        self.stMoment = {}
+        self.ndMoment = {}
+        self.RMS = {}
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            # check for first time:
+            layer_id = &#34;{}{}&#34;.format(layer_num, &#39;w&#39; if is_weight else &#39;b&#39;)
+            if layer_id not in self.stMoment.keys():
+                self.stMoment[layer_id] = np.zeros(weights.shape)
+            if layer_id not in self.ndMoment.keys():
+                self.ndMoment[layer_id] = np.zeros(weights.shape)
+            if layer_id not in self.RMS.keys():
+                self.RMS[layer_id] = np.zeros(weights.shape)
+
+            # update step
+            self.stMoment[layer_id] = self.beta * self.stMoment[layer_id] + (1 - self.beta) * dw
+            self.ndMoment[layer_id] = self.beta * self.ndMoment[layer_id] + (1 - self.beta) * np.square(dw)
+            self.RMS[layer_id] = self.beta * self.RMS[layer_id] + self.lr * dw / (
+                np.sqrt(self.ndMoment[layer_id] - np.square(self.stMoment[layer_id]) + 1e-8))
+
+            return weights - self.RMS[layer_id]
+
+
+class Adam(Optimizer):
+    &#34;&#34;&#34;Adam Optimizer&#34;&#34;&#34;
+
+    __name__ = &#39;Adam&#39;
+
+    def __init__(self, lr=0.01, beta1=0.9, beta2=0.999):
+        super().__init__(lr)
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.momentum = {}
+        self.secMoment = {}
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            # check for first time:
+            layer_id = &#34;{}{}&#34;.format(layer_num, &#39;w&#39; if is_weight else &#39;b&#39;)
+            if layer_id not in self.secMoment.keys():
+                self.secMoment[layer_id] = np.zeros(weights.shape)
+            if layer_id not in self.momentum.keys():
+                self.momentum[layer_id] = np.zeros(weights.shape)
+
+            # update step
+            self.secMoment[layer_id] = (self.beta2 * self.secMoment[layer_id] + (1 - self.beta2) * np.square(dw)) / (
+                    1 - np.power(self.beta2, i + 1))
+            self.momentum[layer_id] = (self.beta1 * self.momentum[layer_id] + (1 - self.beta1) * dw) / (
+                    1 - np.power(self.beta1, i + 1))
+
+            return weights - self.lr * self.momentum[layer_id] / (np.sqrt(self.secMoment[layer_id]) + 1e-8)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="ainshamsflow.optimizers.get"><code class="name flex">
+<span>def <span class="ident">get</span></span>(<span>opt_name)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get any Optimizer in this Module by name.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get(opt_name):
+    &#34;&#34;&#34;Get any Optimizer in this Module by name.&#34;&#34;&#34;
+
+    opts = [SGD, Momentum, AdaDelta, RMSProp, Adam, AdaDelta]
+    for opt in opts:
+        if opt.__name__.lower() == opt_name.lower():
+            return opt()
+    else:
+        raise NameNotFoundError(opt_name, __name__)</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="ainshamsflow.optimizers.AdaDelta"><code class="flex name class">
+<span>class <span class="ident">AdaDelta</span></span>
+<span>(</span><span>lr=0.01, beta=0.9)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>AdaDelta</p>
+<p>Initialize the Learning Rate.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class AdaDelta(Optimizer):
+    &#34;&#34;&#34;AdaDelta&#34;&#34;&#34;
+
+    __name__ = &#39;AdaDelta&#39;
+
+    def __init__(self, lr=0.01, beta=0.9):
+        super().__init__(lr)
+        self.beta = beta
+        self.delta = {}
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            # check for first time:
+            layer_id = &#34;{}{}&#34;.format(layer_num, &#39;w&#39; if is_weight else &#39;b&#39;)
+            if layer_id not in self.delta.keys():
+                self.delta[layer_id] = np.zeros(weights.shape)
+
+            # update step
+            self.delta[layer_id] = self.beta * self.delta[layer_id] + (1 - self.beta) * np.square(dw)
+
+            return weights - self.lr * dw / (np.sqrt(self.delta[layer_id]) + 1e-8)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.optimizers.Optimizer" href="#ainshamsflow.optimizers.Optimizer">Optimizer</a></li>
+</ul>
+</dd>
+<dt id="ainshamsflow.optimizers.AdaGrad"><code class="flex name class">
+<span>class <span class="ident">AdaGrad</span></span>
+<span>(</span><span>lr=0.01, beta=0.9)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>AdaGrad</p>
+<p>Initialize the Learning Rate.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class AdaGrad(Optimizer):
+    &#34;&#34;&#34;AdaGrad&#34;&#34;&#34;
+
+    __name__ = &#39;AdaGrad&#39;
+
+    def __init__(self, lr=0.01, beta=0.9):
+        super().__init__(lr)
+        self.beta = beta
+        self.RMS = {}
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            # check for first time:
+            layer_id = &#34;{}{}&#34;.format(layer_num, &#39;w&#39; if is_weight else &#39;b&#39;)
+            if layer_id not in self.RMS.keys():
+                self.RMS[layer_id] = np.zeros(weights.shape)
+
+            # update step
+            self.RMS[layer_id] = self.RMS[layer_id] + np.square(dw)
+
+            return weights - self.lr * dw / (np.sqrt(self.RMS[layer_id]) + 1e-8)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.optimizers.Optimizer" href="#ainshamsflow.optimizers.Optimizer">Optimizer</a></li>
+</ul>
+</dd>
+<dt id="ainshamsflow.optimizers.Adam"><code class="flex name class">
+<span>class <span class="ident">Adam</span></span>
+<span>(</span><span>lr=0.01, beta1=0.9, beta2=0.999)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Adam Optimizer</p>
+<p>Initialize the Learning Rate.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Adam(Optimizer):
+    &#34;&#34;&#34;Adam Optimizer&#34;&#34;&#34;
+
+    __name__ = &#39;Adam&#39;
+
+    def __init__(self, lr=0.01, beta1=0.9, beta2=0.999):
+        super().__init__(lr)
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.momentum = {}
+        self.secMoment = {}
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            # check for first time:
+            layer_id = &#34;{}{}&#34;.format(layer_num, &#39;w&#39; if is_weight else &#39;b&#39;)
+            if layer_id not in self.secMoment.keys():
+                self.secMoment[layer_id] = np.zeros(weights.shape)
+            if layer_id not in self.momentum.keys():
+                self.momentum[layer_id] = np.zeros(weights.shape)
+
+            # update step
+            self.secMoment[layer_id] = (self.beta2 * self.secMoment[layer_id] + (1 - self.beta2) * np.square(dw)) / (
+                    1 - np.power(self.beta2, i + 1))
+            self.momentum[layer_id] = (self.beta1 * self.momentum[layer_id] + (1 - self.beta1) * dw) / (
+                    1 - np.power(self.beta1, i + 1))
+
+            return weights - self.lr * self.momentum[layer_id] / (np.sqrt(self.secMoment[layer_id]) + 1e-8)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.optimizers.Optimizer" href="#ainshamsflow.optimizers.Optimizer">Optimizer</a></li>
+</ul>
+</dd>
+<dt id="ainshamsflow.optimizers.Momentum"><code class="flex name class">
+<span>class <span class="ident">Momentum</span></span>
+<span>(</span><span>lr=0.01, beta=0.9)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>SGD with Momentum</p>
+<p>Initialize the Learning Rate.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Momentum(Optimizer):
+    &#34;&#34;&#34;SGD with Momentum&#34;&#34;&#34;
+
+    __name__ = &#39;Momentum&#39;
+
+    def __init__(self, lr=0.01, beta=0.9):
+        super().__init__(lr)
+        self.beta = beta
+        self.momentum = {}
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            # check for first time:
+            layer_id = &#34;{}{}&#34;.format(layer_num, &#39;w&#39; if is_weight else &#39;b&#39;)
+            if layer_id not in self.momentum.keys():
+                self.momentum[layer_id] = np.zeros(weights.shape)
+
+            # update step
+            self.momentum[layer_id] = self.beta * self.momentum[layer_id] + (1 - self.beta) * dw
+
+            return weights - self.lr * self.momentum[layer_id]</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.optimizers.Optimizer" href="#ainshamsflow.optimizers.Optimizer">Optimizer</a></li>
+</ul>
+</dd>
+<dt id="ainshamsflow.optimizers.Optimizer"><code class="flex name class">
+<span>class <span class="ident">Optimizer</span></span>
+<span>(</span><span>lr=0.01)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Optimiser Base Class.</p>
+<p>Used to generalize learning using Gradient Descent.</p>
+<p>Creating a new optimizer is as easy as creating a new class that
+inherits from this class.
+You then have to add any extra parameters in your constructor
+(while still calling this class' constructor) and redefine the
+_update() method.</p>
+<p>Initialize the Learning Rate.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Optimizer:
+    &#34;&#34;&#34;Optimiser Base Class.
+
+    Used to generalize learning using Gradient Descent.
+
+    Creating a new optimizer is as easy as creating a new class that
+    inherits from this class.
+    You then have to add any extra parameters in your constructor
+    (while still calling this class&#39; constructor) and redefine the
+    _update() method.
+    &#34;&#34;&#34;
+
+    def __init__(self, lr=0.01):
+        &#34;&#34;&#34;Initialize the Learning Rate.&#34;&#34;&#34;
+        self.lr = lr
+
+    def __call__(self, ds_train, ds_valid, epochs, train_batch_size, valid_batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
+        &#34;&#34;&#34;Run optimization using Gradient Descent. Return History Object for training session.&#34;&#34;&#34;
+
+        m = ds_train.cardinality()
+
+        if train_batch_size is not None:
+            ds_train.batch(train_batch_size)
+
+        if ds_valid is not None:
+            if valid_batch_size is not None:
+                ds_valid.batch(train_batch_size)
+
+        history = History(loss, metrics, ds_valid is not None)
+        loss_values = []
+        metrics_values = []
+
+        val_loss_values = []
+        val_metrics_values = []
+
+        if verbose:
+            if training:
+                print(&#39;Training Model for {} epochs:&#39;.format(epochs))
+            else:
+                print(&#39;Evaluating Model:&#39;)
+
+        for i, (batch_x, batch_y) in enumerate(ds_train):
+            loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                               loss, metrics, regularizer, False, i)
+            loss_values.append(loss_value)
+            metrics_values.append(metric_values)
+
+        loss_values = np.array(loss_values).sum()
+        metrics_values = np.array(metrics_values).mean(axis=0)
+
+        if ds_valid is not None:
+            for i, (batch_x, batch_y) in enumerate(ds_valid):
+                val_loss_value, val_metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                                   loss, metrics, regularizer, False, i)
+                val_loss_values.append(val_loss_value)
+                val_metrics_values.append(val_metric_values)
+
+            val_loss_values = np.array(val_loss_values).sum()
+            val_metrics_values = np.array(val_metrics_values).mean(axis=0)
+
+        if verbose:
+            if training:
+                print(&#39;Epoch #{:4d}:&#39;.format(0), end=&#39; &#39;)
+
+            print(
+                &#39;{}={:8.4f},&#39;.format(&#39;loss&#39;, loss_values),
+                *[&#39;{}={:8.4f},&#39;.format(metric.__name__, metrics_values[j])
+                  for j, metric in enumerate(metrics)],
+                end=&#39; &#39;
+            )
+            if ds_valid is not None:
+                print(
+                    &#39;{}={:8.4f},&#39;.format(&#39;val_loss&#39;, val_loss_values),
+                    *[&#39;{}={:8.4f},&#39;.format(&#39;val_&#39; + metric.__name__, val_metrics_values[j])
+                      for j, metric in enumerate(metrics)],
+                    end=&#39; &#39;
+                )
+            print()
+
+            if training:
+                history.add(loss_values, metrics_values, val_loss_values, val_metrics_values)
+
+        if not training:
+            if verbose:
+                return
+            else:
+                return loss_values, metrics_values
+
+        for epoch_num in range(epochs):
+            loss_values = []
+            metrics_values = []
+            val_loss_values = []
+            val_metrics_values = []
+
+            for i, (batch_x, batch_y) in enumerate(ds_train):
+                loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                                   loss, metrics, regularizer, training, i)
+                loss_values.append(loss_value)
+                metrics_values.append(metric_values)
+
+            loss_values = np.array(loss_values).sum()
+            metrics_values = np.array(metrics_values).mean(axis=0)
+
+            if ds_valid is not None :
+                for i, (batch_x, batch_y) in enumerate(ds_valid):
+                    val_loss_value, val_metric_values = self._single_iteration(batch_x, batch_y, m, layers,
+                                                                               loss, metrics, regularizer, False, i)
+                    val_loss_values.append(val_loss_value)
+                    val_metrics_values.append(val_metric_values)
+
+                val_loss_values = np.array(val_loss_values).sum()
+                val_metrics_values = np.array(val_metrics_values).mean(axis=0)
+
+            history.add(loss_values, metrics_values, val_loss_values, val_metrics_values)
+
+            if verbose:
+                print(
+                    &#39;Epoch #{:4d}:&#39;.format(epoch_num+1),
+                    &#39;{}={:8.4f},&#39;.format(&#39;loss&#39;, loss_values),
+                    *[&#39;{}={:8.4f},&#39;.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)],
+                    end=&#39; &#39;
+                )
+                if ds_valid is not None:
+                    print(
+                        &#39;{}={:8.4f},&#39;.format(&#39;val_loss&#39;, val_loss_values),
+                        *[&#39;{}={:8.4f},&#39;.format(&#39;val_&#39; + metric.__name__, val_metrics_values[j])
+                          for j, metric in enumerate(metrics)],
+                        end=&#39; &#39;
+                    )
+                print()
+
+        return history
+
+    def _single_iteration(self, batch_x, batch_y, m, layers, loss, metrics, regularizer, training, i):
+        &#34;&#34;&#34;Run optimization for a single batch. Return loss value and metric values for iteration.&#34;&#34;&#34;
+
+        weights_list = [layer.get_weights()[0] for layer in layers]
+        # Forward Pass
+        batch_a = batch_x
+        for j, layer in enumerate(layers):
+            batch_a = layer(batch_a, training)
+        regularization_term = 0 if regularizer is None else regularizer(weights_list, m)
+        loss_value = loss(batch_a, batch_y) + regularization_term
+        metric_values = []
+        if metrics:
+            Metric.calc_confusion_matrix(batch_a, batch_y)
+            for metric in metrics:
+                metric_values.append(metric())
+        # Backward Pass
+        regularization_diff = None if regularizer is None else regularizer.diff(weights_list, m)
+        da = loss.diff(batch_a, batch_y)
+        if training:
+            for j in reversed(range(len(layers))):
+                da, dw, db = layers[j].diff(da)
+                if layers[j].trainable:
+                    if regularization_diff is not None:
+                        dw = self._add_reg_diff(dw, regularization_diff[j])
+                    weights, biases = layers[j].get_weights()
+                    updated_weights = self._update(i, weights, dw, layer_num=j, is_weight=True)
+                    updated_biases = self._update(i, biases, db, layer_num=j, is_weight=False)
+                    layers[j].set_weights(updated_weights, updated_biases)
+        return loss_value, metric_values
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        raise BaseClassError
+
+    def _add_reg_diff(self, dw, reg_diff):
+        if isinstance(dw, list) and isinstance(reg_diff, list):
+            dw_new = []
+            for single_dw, single_reg_diff in zip(dw, reg_diff):
+                single_dw = self._add_reg_diff(single_dw, single_reg_diff)
+                dw_new.append(single_dw)
+        else:
+            dw_new = dw + reg_diff
+        return dw_new</code></pre>
+</details>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.optimizers.AdaDelta" href="#ainshamsflow.optimizers.AdaDelta">AdaDelta</a></li>
+<li><a title="ainshamsflow.optimizers.AdaGrad" href="#ainshamsflow.optimizers.AdaGrad">AdaGrad</a></li>
+<li><a title="ainshamsflow.optimizers.Adam" href="#ainshamsflow.optimizers.Adam">Adam</a></li>
+<li><a title="ainshamsflow.optimizers.Momentum" href="#ainshamsflow.optimizers.Momentum">Momentum</a></li>
+<li><a title="ainshamsflow.optimizers.RMSProp" href="#ainshamsflow.optimizers.RMSProp">RMSProp</a></li>
+<li><a title="ainshamsflow.optimizers.SGD" href="#ainshamsflow.optimizers.SGD">SGD</a></li>
+</ul>
+</dd>
+<dt id="ainshamsflow.optimizers.RMSProp"><code class="flex name class">
+<span>class <span class="ident">RMSProp</span></span>
+<span>(</span><span>lr=0.01, beta=0.9)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>RMSProp</p>
+<p>Initialize the Learning Rate.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class RMSProp(Optimizer):
+    &#34;&#34;&#34;RMSProp&#34;&#34;&#34;
+
+    __name__ = &#39;RMSProp&#39;
+
+    def __init__(self, lr=0.01, beta=0.9):
+        super().__init__(lr)
+        self.beta = beta
+        self.stMoment = {}
+        self.ndMoment = {}
+        self.RMS = {}
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            # check for first time:
+            layer_id = &#34;{}{}&#34;.format(layer_num, &#39;w&#39; if is_weight else &#39;b&#39;)
+            if layer_id not in self.stMoment.keys():
+                self.stMoment[layer_id] = np.zeros(weights.shape)
+            if layer_id not in self.ndMoment.keys():
+                self.ndMoment[layer_id] = np.zeros(weights.shape)
+            if layer_id not in self.RMS.keys():
+                self.RMS[layer_id] = np.zeros(weights.shape)
+
+            # update step
+            self.stMoment[layer_id] = self.beta * self.stMoment[layer_id] + (1 - self.beta) * dw
+            self.ndMoment[layer_id] = self.beta * self.ndMoment[layer_id] + (1 - self.beta) * np.square(dw)
+            self.RMS[layer_id] = self.beta * self.RMS[layer_id] + self.lr * dw / (
+                np.sqrt(self.ndMoment[layer_id] - np.square(self.stMoment[layer_id]) + 1e-8))
+
+            return weights - self.RMS[layer_id]</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.optimizers.Optimizer" href="#ainshamsflow.optimizers.Optimizer">Optimizer</a></li>
+</ul>
+</dd>
+<dt id="ainshamsflow.optimizers.SGD"><code class="flex name class">
+<span>class <span class="ident">SGD</span></span>
+<span>(</span><span>lr=0.01)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Stochastic Gradient Descent Algorithm.</p>
+<p>Initialize the Learning Rate.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class SGD(Optimizer):
+    &#34;&#34;&#34;Stochastic Gradient Descent Algorithm.&#34;&#34;&#34;
+
+    __name__ = &#39;SGD&#39;
+
+    def _update(self, i, weights, dw, layer_num, is_weight):
+        &#34;&#34;&#34;Update step for SGD.&#34;&#34;&#34;
+        if isinstance(weights, list) and isinstance(dw, list):
+            ans = []
+            for j, (weight, d) in enumerate(zip(weights, dw)):
+                l_num = &#39;{}.{}&#39;.format(layer_num, j)
+                ans.append(self._update(i, weight, d, l_num, is_weight))
+            return ans
+        else:
+            _check_dims(weights, dw)
+
+            return weights - self.lr * dw</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.optimizers.Optimizer" href="#ainshamsflow.optimizers.Optimizer">Optimizer</a></li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="ainshamsflow" href="index.html">ainshamsflow</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="ainshamsflow.optimizers.get" href="#ainshamsflow.optimizers.get">get</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="ainshamsflow.optimizers.AdaDelta" href="#ainshamsflow.optimizers.AdaDelta">AdaDelta</a></code></h4>
+</li>
+<li>
+<h4><code><a title="ainshamsflow.optimizers.AdaGrad" href="#ainshamsflow.optimizers.AdaGrad">AdaGrad</a></code></h4>
+</li>
+<li>
+<h4><code><a title="ainshamsflow.optimizers.Adam" href="#ainshamsflow.optimizers.Adam">Adam</a></code></h4>
+</li>
+<li>
+<h4><code><a title="ainshamsflow.optimizers.Momentum" href="#ainshamsflow.optimizers.Momentum">Momentum</a></code></h4>
+</li>
+<li>
+<h4><code><a title="ainshamsflow.optimizers.Optimizer" href="#ainshamsflow.optimizers.Optimizer">Optimizer</a></code></h4>
+</li>
+<li>
+<h4><code><a title="ainshamsflow.optimizers.RMSProp" href="#ainshamsflow.optimizers.RMSProp">RMSProp</a></code></h4>
+</li>
+<li>
+<h4><code><a title="ainshamsflow.optimizers.SGD" href="#ainshamsflow.optimizers.SGD">SGD</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+</footer>
+</body>
+</html>

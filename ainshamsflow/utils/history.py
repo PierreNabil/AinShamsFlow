@@ -1,4 +1,4 @@
-"""History Object Moeule.
+"""History Object Module.
 
 In this Module, we define the History Class used to visualize statistics
 such as loss and metric values during training.

@@ -2,6 +2,7 @@
   <dictionary name="owner">
     <words>
       <w>lambd</w>
+      <w>pdoc</w>
       <w>regularizer</w>
       <w>regularizers</w>
       <w>selu</w>

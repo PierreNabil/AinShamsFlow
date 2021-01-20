@@ -12,12 +12,30 @@ from ainshamsflow.utils.asf_errors import (BaseClassError, NameNotFoundError, Un
 										   InvalidRangeError)
 
 
+__pdoc__ = dict()
+
+__pdoc__['Layer.add_input_shape_to_layer'] = False
+__pdoc__['Layer.diff'] = False
+__pdoc__['Layer.count_params'] = False
+__pdoc__['Layer.get_weights'] = False
+__pdoc__['Layer.set_weights'] = False
+
+for layer_n in ['Dense', 'BatchNorm', 'Dropout',
+				'Conv1D', 'Pool1D', 'GlobalPool1D', 'Upsample1D',
+				'Conv2D', 'Pool2D', 'GlobalPool2D', 'Upsample2D',
+				'Conv3D', 'Pool3D', 'GlobalPool3D', 'Upsample3D',
+				'Flatten', 'Activation', 'Reshape']:
+	__pdoc__[layer_n + '.__call__'] = True
+	__pdoc__[layer_n + '.diff'] = True
+	__pdoc__[layer_n + '.add_input_shape_to_layers'] = False
+
+
 def get(layer_name):
 	"""Get any Layer in this Module by name."""
 
 	layers = [Dense, BatchNorm, Dropout,
 			  Conv1D, Pool1D, GlobalPool1D, Upsample1D,
-			  Conv2D, Pool2D, GlobalPool2D,  Upsample2D,
+			  Conv2D, Pool2D, GlobalPool2D, Upsample2D,
 			  Conv3D, Pool3D, GlobalPool3D, Upsample3D,
 			  Flatten, Activation, Reshape]
 	for layer in layers:
@@ -32,14 +50,18 @@ class Layer:
 
 	To create a new Layer, create a class that inherits from this class.
 	You then have to add any parameters in your constructor
-	(while still calling this class' constructor) and redefine the
-	__call__(), diff(), add_input_shape_to_layer(), (Manditory)
+	(while still calling this class' constructor) and redefine the \_\_call\_\_(),
+	diff(), add_input_shape_to_layer(), (Manditory)
 	count_params(), get_weights() and set_weights() (Optional)
 	methods.
 	"""
 
 	def __init__(self, name=None, trainable=False):
-		"""Initialize the name and trainable parameter of the layer."""
+		"""
+		Args:
+			name: name of  the layer.
+			trainable: Boolean to define whether this layer is trainable or not.
+		"""
 
 		if not isinstance(trainable, bool):
 			raise WrongObjectError(trainable, True)
@@ -92,6 +114,16 @@ class Dense(Layer):
 	def __init__(self, n_out, activation=activations.Linear(),
 				 weights_init=initializers.Normal(), biases_init=initializers.Constant(0),
 				 trainable=True, name=None):
+		"""
+		Activations and Initializers can be strings or objects.
+		Args:
+			n_out: number of (output) neurons in this layer.
+			activation: activation function used for the layer.
+			weights_init: Initializer for the weights of this layer.
+			biases_init: Initializer for the biases of this layers.
+			name: name of  the layer.
+			trainable: Boolean to define whether this layer is trainable or not.
+		"""
 		if not isinstance(n_out, int):
 			raise WrongObjectError(n_out, 1)
 		if n_out <= 0:
@@ -175,6 +207,17 @@ class BatchNorm(Layer):
 				 gamma_init=initializers.Constant(1), beta_init=initializers.Constant(0),
 				 mu_init=initializers.Constant(0), sig_init=initializers.Constant(1),
 				 trainable=True, name=None):
+		"""
+		Args:
+			epsilon:
+			momentum:
+			gamma_init: Initializer for the weights of this layer.
+			beta_init: Initializer for the biases of this layer.
+			mu_init: Initializer for the means of this layer.
+			sig_init: Initializer for the standard deviations of this layer.
+			name: name of  the layer.
+			trainable: Boolean to define whether this layer is trainable or not.
+		"""
 		if not isinstance(epsilon, float):
 			raise WrongObjectError(epsilon, float())
 		if not 0 < epsilon < 1:
@@ -277,6 +320,11 @@ class Dropout(Layer):
 	__name__ = 'Dropout'
 
 	def __init__(self, prob, name=None):
+		"""
+		Args:
+			 prob: probability of keeping a neuron.
+			 name: name of  the layer.
+		"""
 		if not 0 < prob <= 1:
 			raise InvalidRangeError(prob, 0, 1)
 		self.rate = prob
@@ -315,6 +363,25 @@ class Conv1D(Layer):
 	def __init__(self, filters, kernel_size, strides=1, padding='valid',
 				 kernel_init=initializers.Normal(), biases_init=initializers.Constant(0),
 				 activation=activations.Linear(), name=None, trainable=True):
+		"""
+		Args:
+			filters: number of filters (kernels)
+			kernel_size: An integer or tuple of 1 integer, specifying the height and
+				width of the 1D convolution window. Can be a single integer to specify
+				the same value for all spatial dimensions.
+			strides: An integer or tuple of 1 integer, specifying the strides of the
+				convolution along the height and width. Can be a single integer to
+				specify the same value for all spatial dimensions. Specifying any stride
+				value != 1 is incompatible with specifying any dilation_rate value != 1.
+			padding: one of "valid" or "same" (case-insensitive). "valid" means no padding.
+				"same" results in padding evenly to the left/right or up/down of the input such
+				that output has the same height/width dimension as the input.
+			kernel_init: Initializer for the weights of this layer.
+			biases_init: Initializer for the biases of this layer.
+			activation: activation function used for the layer.
+			name: name of  the layer.
+			trainable: Boolean to define whether this layer is trainable or not.
+		"""
 		if not isinstance(filters, int):
 			raise WrongObjectError(filters, 0)
 		if isinstance(kernel_size, int):
@@ -467,6 +534,20 @@ class Pool1D(Layer):
 	__name__ = 'Pool1D'
 
 	def __init__(self, pool_size=2, strides=None, padding='valid', mode='max', name=None, trainable=True):
+		"""
+		Args:
+			pool_size: Integer or tuple of 1 integer. Factor by which to downscale. (2,) will halve
+			the input dimension. If only one integer is specified, the same window length will be used
+			for all dimensions.
+			strides: Integer, or tuple of 1 integer. Factor by which to downscale. E.g. 2 will halve the input.
+				If None, it will default to pool_size.
+			padding: One of "valid" or "same" (case-insensitive). "valid" means no padding. "same"
+				results in padding evenly to the left/right or up/down of the input such that output
+				has the same height/width dimension as the input.
+			mode: One of "max" or "avg" (case-insentitive).
+			name: name of  the layer.
+			trainable: Boolean to define whether this layer is trainable or not.
+		"""
 		if isinstance(pool_size, int):
 			pool_size = (pool_size,)
 		if not isinstance(pool_size, tuple):
@@ -593,6 +674,11 @@ class GlobalPool1D(Layer):
 	__name__ = 'GlobalPool1D'
 
 	def __init__(self, mode='max', name=None):
+		"""
+		Args:
+			mode: One of "max" or "avg" (case-insentitive).
+			name: name of  the layer.
+		"""
 		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'):
 			raise InvalidRangeError(mode, 'max', 'avg')
 		if mode == 'max':
@@ -649,6 +735,11 @@ class Upsample1D(Layer):
 	__name__ = 'Upsample1D'
 
 	def __init__(self, size=2, name=None):
+		"""
+		Args:
+			size: Int, or tuple of 1 integer. The upsampling factors for rows and columns.
+			name: name of  the layer.
+		"""
 		if isinstance(size, int):
 			size = (size,)
 		if not isinstance(size, tuple):
@@ -711,6 +802,25 @@ class Conv2D(Layer):
 	def __init__(self, filters, kernel_size, strides=1, padding='valid',
 				 kernel_init=initializers.Normal(), biases_init=initializers.Constant(0),
 				 activation=activations.Linear(), name=None, trainable=True):
+		"""
+		Args:
+			filters: number of filters (kernels)
+			kernel_size: An integer or tuple of 2 integers, specifying the height and
+				width of the 2D convolution window. Can be a single integer to specify
+				the same value for all spatial dimensions.
+			strides: An integer or tuple of 2 integers, specifying the strides of the
+				convolution along the height and width. Can be a single integer to
+				specify the same value for all spatial dimensions. Specifying any stride
+				value != 1 is incompatible with specifying any dilation_rate value != 1.
+			padding: one of "valid" or "same" (case-insensitive). "valid" means no padding.
+				"same" results in padding evenly to the left/right or up/down of the input such
+				that output has the same height/width dimension as the input.
+			kernel_init: Initializer for the weights of this layer.
+			biases_init: Initializer for the biases of this layer.
+			activation: activation function used for the layer.
+			name: name of  the layer.
+			trainable: Boolean to define whether this layer is trainable or not.
+		"""
 		if not isinstance(filters, int):
 			raise WrongObjectError(filters, 0)
 		if isinstance(kernel_size, int):
@@ -872,6 +982,20 @@ class Pool2D(Layer):
 	__name__ = 'Pool2D'
 
 	def __init__(self, pool_size=2, strides=None, padding='valid', mode='max', name=None, trainable=True):
+		"""
+		Args:
+			pool_size: Integer or tuple of 2 integers, factors by which to downscale. (2, 2) will halve
+			the input dimensions. If only one integer is specified, the same window length will be used
+			for all dimensions.
+			strides: Integer, or tuple of 2 integers. Factor by which to downscale. 2 will halve the input.
+				If None, it will default to pool_size.
+			padding: One of "valid" or "same" (case-insensitive). "valid" means no padding. "same"
+				results in padding evenly to the left/right or up/down of the input such that output
+				has the same height/width dimension as the input.
+			mode: One of "max" or "avg" (case-insentitive).
+			name: name of  the layer.
+			trainable: Boolean to define whether this layer is trainable or not.
+		"""
 		if isinstance(pool_size, int):
 			pool_size = (pool_size, pool_size)
 		if not isinstance(pool_size, tuple):
@@ -1007,6 +1131,11 @@ class GlobalPool2D(Layer):
 	__name__ = 'GlobalPool2D'
 
 	def __init__(self, mode='max', name=None):
+		"""
+		Args:
+			mode: One of "max" or "avg" (case-insentitive).
+			name: name of  the layer.
+		"""
 		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'):
 			raise InvalidRangeError(mode, 'max', 'avg')
 		if mode == 'max':
@@ -1063,6 +1192,11 @@ class Upsample2D(Layer):
 	__name__ = 'Upsample2D'
 
 	def __init__(self, size=2, name=None):
+		"""
+		Args:
+			size: Int, or tuple of 2 integers. The upsampling factors for rows and columns.
+			name: name of  the layer.
+		"""
 		if isinstance(size, int):
 			size = (size, size)
 		if not isinstance(size, tuple):
@@ -1128,6 +1262,25 @@ class Conv3D(Layer):
 	def __init__(self, filters, kernel_size, strides=1, padding='valid',
 				 kernel_init=initializers.Normal(), biases_init=initializers.Constant(0),
 				 activation=activations.Linear(), name=None, trainable=True):
+		"""
+		Args:
+			filters: number of filters (kernels)
+			kernel_size: An integer or tuple of 3 integers, specifying the height and
+				width of the 3D convolution window. Can be a single integer to specify
+				the same value for all spatial dimensions.
+			strides: An integer or tuple of 3 integers, specifying the strides of the
+				convolution along the height and width. Can be a single integer to
+				specify the same value for all spatial dimensions. Specifying any stride
+				value != 1 is incompatible with specifying any dilation_rate value != 1.
+			padding: one of "valid" or "same" (case-insensitive). "valid" means no padding.
+				"same" results in padding evenly to the left/right or up/down of the input such
+				that output has the same height/width dimension as the input.
+			kernel_init: Initializer for the weights of this layer.
+			biases_init: Initializer for the biases of this layer.
+			activation: activation function used for the layer.
+			name: name of  the layer.
+			trainable: Boolean to define whether this layer is trainable or not.
+		"""
 		if not isinstance(filters, int):
 			raise WrongObjectError(filters, 0)
 		if isinstance(kernel_size, int):
@@ -1299,6 +1452,20 @@ class Pool3D(Layer):
 	__name__ = 'Pool3D'
 
 	def __init__(self, pool_size=2, strides=None, padding='valid', mode='max', name=None, trainable=True):
+		"""
+		Args:
+			pool_size: Integer or tuple of 3 integers, factors by which to downscale. (2, 2, 2) will halve
+			the input dimensions. If only one integer is specified, the same window length will be used
+			for all dimensions.
+			strides: Integer, or tuple of 3 integers. Factor by which to downscale. 2 will halve the input.
+				If None, it will default to pool_size.
+			padding: One of "valid" or "same" (case-insensitive). "valid" means no padding. "same"
+				results in padding evenly to the left/right or up/down of the input such that output
+				has the same height/width dimension as the input.
+			mode: One of "max" or "avg" (case-insentitive).
+			name: name of  the layer.
+			trainable: Boolean to define whether this layer is trainable or not.
+		"""
 		if isinstance(pool_size, int):
 			pool_size = (pool_size, pool_size, pool_size)
 		if not isinstance(pool_size, tuple):
@@ -1445,6 +1612,11 @@ class GlobalPool3D(Layer):
 	__name__ = 'GlobalPool3D'
 
 	def __init__(self, mode='max', name=None):
+		"""
+		Args:
+			mode: One of "max" or "avg" (case-insentitive).
+			name: name of  the layer.
+		"""
 		if not (mode == 'max' or mode == 'avg' or mode == 'average' or mode == 'mean'):
 			raise InvalidRangeError(mode, 'max', 'avg')
 		if mode == 'max':
@@ -1501,6 +1673,11 @@ class Upsample3D(Layer):
 	__name__ = 'Upsample3D'
 
 	def __init__(self, size=2, name=None):
+		"""
+		Args:
+			size: Int, or tuple of 2 integers. The upsampling factors for rows and columns.
+			name: name of  the layer.
+		"""
 		if isinstance(size, int):
 			size = (size, size, size)
 		if not isinstance(size, tuple):
@@ -1576,6 +1753,10 @@ class Flatten(Layer):
 	__name__ = 'Flatten'
 
 	def __init__(self, name=None):
+		"""
+		Args:
+			name: name of  the layer.
+		"""
 		super().__init__(name, False)
 		self.n_out = None
 		self.n_in = None
@@ -1606,6 +1787,11 @@ class Activation(Layer):
 	__name__ = 'Activation'
 
 	def __init__(self, act, name=None):
+		"""
+		Args:
+			act: Either an activation instance or string.
+			name: name of  the layer.
+		"""
 		if isinstance(act, str):
 			self.activation = activations.get(act)
 		if not isinstance(act, activations.Activation()):
@@ -1650,6 +1836,10 @@ class Reshape(Layer):
 	__name__ = 'Reshape'
 
 	def __init__(self, n_out, name=None):
+		"""
+		Args:
+			name: name of  the layer.
+		"""
 		if not isinstance(n_out, tuple):
 			raise WrongObjectError(n_out, tuple())
 

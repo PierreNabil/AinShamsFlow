@@ -10,6 +10,13 @@ import os
 
 from ainshamsflow.utils.asf_errors import UnsupportedShapeError, UninitializedDatasetError
 
+__pdoc__ = dict()
+
+__pdoc__['Dataset.__bool__'] = True
+__pdoc__['Dataset.__len__'] = True
+__pdoc__['Dataset.__iter__'] = True
+__pdoc__['Dataset.__next__'] = True
+
 
 class Dataset:
 	def __init__(self, x=None, y=None):
@@ -25,12 +32,22 @@ class Dataset:
 		self.is_batched = False
 
 	def __bool__(self):
+		"""Returns True if the Dataset is not None."""
 		return self.data is not None
 
 	def __len__(self):
+		"""Returns the number of data points in the dataset."""
 		return self.cardinality()
 
 	def __iter__(self):
+		"""Defines the Dataset as an Interator.
+
+		Enables the user to do this:
+		```python
+		>>> for x, y in ds.batch(1):
+		... 	print(x, y)
+		```
+		"""
 		if self.data is None:
 			raise UninitializedDatasetError
 
@@ -41,6 +58,14 @@ class Dataset:
 		return self
 
 	def __next__(self):
+		"""Defines the Dataset as an Interator.
+
+		Enables the user to do this:
+		```python
+		>>> for x, y in ds.batch(1):
+		... 	print(x, y)
+		```
+		"""
 		if self.index >= self.data.shape[0]:
 			raise StopIteration
 
@@ -56,27 +81,29 @@ class Dataset:
 			return x
 
 	def copy(self):
-		""" Returns a copy of the dataset """
+		""" Returns a copy of the dataset."""
 		dataset_copy = Dataset()
 		dataset_copy.data = np.copy(self.data)
 		dataset_copy.target = np.copy(self.target)
 		return dataset_copy
 
 	def apply(self, transformation):
+		"""Applies a transformation function to this dataset.
+		Args:
+			   transformation: a function that applies to the dataset as a whole.
+		Returns:
+			 Dataset After transformation
+		"""
 		return transformation(self)
 
 	def batch(self, batch_size):
-		
-		""" 
-			Divides the dataset into equal parts of size equals batch_size.
-			(Modifies self.data and self.target to be a list of arrays rather than numpy arrays)
+		""" Divides the dataset into equal parts of size equals batch_size.
 
-			Inputs:
-				- batch_size:		(int)
-				- drop_remainder:	(bool)
+		If the dataset is already batched, this functions unbaches first, then baches the data
+		again with the new batch_size.
 
-			Returns:
-				- self
+		Args:
+			batch_size: the size of the batches
 		"""
 		if self.is_batched:
 			self.unbatch()
@@ -98,6 +125,7 @@ class Dataset:
 		return self
 
 	def unbatch(self):
+		"""Unbatches the Dataset if batched"""
 		if self.is_batched:
 			n1d, n2d, *nd = self.data.shape
 			self.data = self.data.reshape((n1d*n2d, *nd))
@@ -107,7 +135,7 @@ class Dataset:
 		return self
 
 	def cardinality(self):
-		""" Returns the number of data points in the dataset """
+		""" Returns the number of data points in the dataset."""
 		if self.data is None:
 			raise UninitializedDatasetError
 
@@ -117,14 +145,10 @@ class Dataset:
 			return self.data.shape[0]
 
 	def concatenate(self, ds_list):
-		"""
-			Creates a Dataset by concatenating the given dataset with this dataset.
+		"""Concatenates this Dataset with any number of datasets.
 
-			Inputs:
-				- ds_list: (list) of the datasets to be concatenated
-
-			Returns:
-				- A new concatenated dataset.
+		Args:
+			ds_list: a list of datasets to use for concatenation.
 		"""
 
 		if self.data is None:
@@ -139,6 +163,15 @@ class Dataset:
 		return self
 
 	def enumerate(self):
+		"""Enumerates the dataset into numbered data elements.
+
+		enables the user to do this:
+		```python
+		>>> ds.enumerate().batch(1)
+		>>> for (i, x), y in ds:
+		... 	print(i, x, y)
+		```
+		"""
 		if self.data is None:
 			raise UninitializedDatasetError
 		enum = []
@@ -148,6 +181,11 @@ class Dataset:
 		return self
 
 	def filter(self, function):
+		"""Filters the dataset given a certain function.
+
+		Args:
+			function: specifies a condition [function(x)] to keep each element x in the dataset.
+		"""
 		if self.data is None:
 			raise UninitializedDatasetError
 		new_data = []
@@ -158,6 +196,12 @@ class Dataset:
 		return self
 
 	def numpy(self):
+		"""Returns the Dataset in a numpy format.
+
+		Returns:
+			dataset features: if dataset is not labeled
+			dataset features, dataset labels: if dataset is labeled
+		"""
 		if self.data is None and self.target is None:
 			raise UninitializedDatasetError
 		elif self.target is None:
@@ -168,17 +212,22 @@ class Dataset:
 			return self.data, self.target
 
 	def map(self, function):
+		"""Maps each element in the dataset with the function map."""
 		if self.data is None:
 			raise UninitializedDatasetError
 		function = np.vectorize(function)
 		return function(self.data)
 
 	def range(self, *args):
+		"""Returns a new Dataset with data as a numbered list.
+
+		uses the same syntax as np.arange()
+		"""
 		self.data = np.arange(*args)
 		return self
 
 	def shuffle(self):
-		""" Arrays shuffled in-place by their first dimension - self returned """
+		"""Arrays shuffled in-place by their first dimension"""
 
 		if self.data is None:
 			raise UninitializedDatasetError
@@ -201,17 +250,15 @@ class Dataset:
 		return self
 
 	def split(self, split_percentage, shuffle=False):
+		"""Splits the dataset into 2 batches (training and testing/validation)
 
-		"""
-		Splits the dataset into 2 batches (training and testing/validation)
+			Args:
+				split_percentage: (float) percentage of the testing/validation data points
+				shuffle: (bool)	if true, the data is shuffled before the split
 
-			Inputs:
-				- split_percentage: (float) percentage of the testing/validation data points
-				- shuffle:			(bool)	if true, the data is shuffled before the split
-
-			Returns (as numpy arrays):
-				- If the dataset was initialized with x only:	returns x_train, x_test
-				- If the dataset was initialized with x and y:	returns x_train, y_train, x_test, y_test
+			Returns:
+				If the dataset was initialized with x only:	returns unlabeled ds_train, ds_test
+				If the dataset was initialized with x and y: returns labeled ds_train, ds_test
 		"""
 
 		if self.data is None:
@@ -233,6 +280,14 @@ class Dataset:
 		return Dataset(x=x_train, y=y_train), Dataset(x=x_test, y=y_test)
 
 	def take(self, limit):
+		"""Takes the first N of data points in dataset to a given end.
+
+		usefull for visulaizing the dataset as follows:
+		```python
+		>>> for x, y in ds.copy().take(5):
+		... 	print(x, y)
+		```
+		"""
 		if self.data is None and self.target is None:
 			raise UninitializedDatasetError
 		if self.data is not None:
@@ -242,6 +297,7 @@ class Dataset:
 		return self
 
 	def skip(self, limit):
+		"""a function that skips data in dataset from a given start."""
 		if self.data is None and self.target is None:
 			raise UninitializedDatasetError
 		if self.data is not None:
@@ -251,6 +307,7 @@ class Dataset:
 		return self
 
 	def add_data(self, x):
+		"""Add features to a dataset."""
 		x = np.array(x)
 		if self.target is not None:
 			if x.shape[0] != self.target.shape[0]:
@@ -259,6 +316,7 @@ class Dataset:
 		return self
 
 	def add_targets(self, y):
+		"""add labels to a dataset."""
 		y = np.array(y)
 		if self.data is not None:
 			if self.data.shape[0] != y.shape[0]:
@@ -268,6 +326,7 @@ class Dataset:
 		return self
 
 	def normalize(self):
+		"""normalize the dataset so as to be centred around the origin."""
 		if self.data is None:
 			raise UninitializedDatasetError
 		self.data = (self.data-self.data.mean(axis=0))/np.sqrt(self.data.var(axis=0)+1e-6)
@@ -287,9 +346,10 @@ class ImageDataGenerator(Dataset):
 	def flow_from_directory(self, directory):
 		"""Reads Images from a Directory.
 
-		If directory holds images only, this function will use these images as a dataset without any labels.
-		Otherwise, if the directory holds folders of images, it will store the folder names as class names in
-		the class_names attribute. It will then label the images according to their folders.
+		Args:
+			directory: If directory holds images only, this function will use these images as a dataset without any labels.
+				Otherwise, if the directory holds folders of images, it will store the folder names as class names in
+				the class_names attribute. It will then label the images according to their folders.
 		"""
 		self.dir = directory
 		self.class_name = [name for name in os.listdir(directory)
@@ -313,6 +373,14 @@ class ImageDataGenerator(Dataset):
 		return self
 
 	def __next__(self):
+		"""Defines the ImageDataGenerator as an Interator.
+
+		Enables the user to do this:
+		```python
+		>>> for x, y in ds.batch(1):
+		... 	print(x, y)
+		```
+		"""
 		if self.index >= self.data.shape[0]:
 			raise StopIteration
 		self.index += 1
@@ -334,7 +402,7 @@ class ImageDataGenerator(Dataset):
 		return ans
 	
 	def copy(self):
-		""" Returns a copy of the dataset """
+		"""Returns a copy of the dataset."""
 		dataset_copy = ImageDataGenerator()
 		dataset_copy.data = np.copy(self.data)
 		dataset_copy.target = np.copy(self.target)
@@ -343,17 +411,15 @@ class ImageDataGenerator(Dataset):
 		return dataset_copy
 	
 	def split(self, split_percentage, shuffle=False):
+		"""Splits the dataset into 2 batches (training and testing/validation)
 
-		"""
-		Splits the dataset into 2 batches (training and testing/validation)
+			Args:
+				split_percentage: (float) percentage of the testing/validation data points
+				shuffle: (bool)	if true, the data is shuffled before the split
 
-			Inputs:
-				- split_percentage: (float) percentage of the testing/validation data points
-				- shuffle:			(bool)	if true, the data is shuffled before the split
-
-			Returns (as numpy arrays):
-				- If the dataset was initialized with x only:	returns x_train, x_test
-				- If the dataset was initialized with x and y:	returns x_train, y_train, x_test, y_test
+			Returns:
+				If the dataset was initialized with x only:	returns unlabeled ds_train, ds_test
+				If the dataset was initialized with x and y: returns labeled ds_train, ds_test
 		"""
 
 		if self.data is None:
