@@ -36,7 +36,7 @@ $ pip install ainshamsflow
 ```
 
 ## Usage:
-you start using this project my importing the package as follows:
+you start using this project by importing the package as follows:
 
 ```python
 >>> import ainshamsflow as asf
@@ -221,11 +221,12 @@ A more elaborate example usage can be found in [main.py](/main.py) or check out 
     
         - [x] History Class for showing training statistics
         - [x] ```verbose``` parameter in training
+        - [ ] live plotting of training statistics
 
     - [x] A utils module for reading and saving models
     - [ ] Adding CUDA support
     - [x] Publish to PyPI
-    - [ ] Creating a Documentation for the Project
+    - [x] Creating a Documentation for the Project
 
 ### Example Usage:
 This part can be found in the

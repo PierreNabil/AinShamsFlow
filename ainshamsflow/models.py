@@ -201,7 +201,7 @@ class Sequential(Model):
 		n_out = [str(ch) for ch in self.n_out]
 		self.output_shape = '(None' + (',{:4}'*len(n_out)).format(*n_out) + ')'
 
-	def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, shuffle=True,
+	def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, live_plot=True, shuffle=True,
 			valid_split=None, valid_data=None, valid_batch_size=None):
 		"""Fit the model to the training data.
 
@@ -220,7 +220,9 @@ class Sequential(Model):
 				`1` => online training,
 				other int => mini-batch training.
 
-			verbose: Whether to print training data or not during training.
+			verbose: Whether to print training progress during training.
+
+			live_plot: Whether to plot the training progress during training.
 
 			shuffle: Whether to shuffle the training data before training.
 
@@ -266,8 +268,8 @@ class Sequential(Model):
 		if shuffle:
 			ds_train.shuffle()
 
-		return self.optimizer(ds_train, ds_valid, epochs, batch_size, valid_batch_size, self.layers,
-							  self.loss, self.metrics, self.regularizer, verbose=verbose, training=True)
+		return self.optimizer(ds_train, ds_valid, epochs, batch_size, valid_batch_size, self.layers, self.loss,
+							  self.metrics, self.regularizer, verbose=verbose, live_plot=live_plot, training=True)
 
 	def evaluate(self, x, y=None, batch_size=None, verbose=True):
 		"""Evaluate the model on validation data.
@@ -299,7 +301,7 @@ class Sequential(Model):
 		if self.optimizer is None:
 			raise UncompiledModelError
 		return self.optimizer(ds, None,  1, batch_size, None, self.layers, self.loss, self.metrics, self.regularizer,
-								 verbose=verbose, training=False)
+								 verbose=verbose, live_plot=False, training=False)
 
 	def add_layer(self, layer):
 		"""Add a new layer to the network."""

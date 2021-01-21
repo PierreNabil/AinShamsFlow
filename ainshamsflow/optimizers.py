@@ -43,7 +43,8 @@ class Optimizer:
         """Initialize the Learning Rate."""
         self.lr = lr
 
-    def __call__(self, ds_train, ds_valid, epochs, train_batch_size, valid_batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
+    def __call__(self, ds_train, ds_valid, epochs, train_batch_size, valid_batch_size, layers, loss, metrics,
+                 regularizer, training=True, verbose=True, live_plot=False):
         """Run optimization using Gradient Descent. Return History Object for training session."""
 
         m = ds_train.cardinality()
@@ -141,6 +142,8 @@ class Optimizer:
                 val_metrics_values = np.array(val_metrics_values).mean(axis=0)
 
             history.add(loss_values, metrics_values, val_loss_values, val_metrics_values)
+            if live_plot:
+                history.show()
 
             if verbose:
                 print(
