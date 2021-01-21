@@ -7,6 +7,7 @@ import numpy as np
 
 from ainshamsflow import activations
 from ainshamsflow import initializers
+from ainshamsflow.utils.utils import get_indices, col2im, im2col
 from ainshamsflow.utils.asf_errors import (BaseClassError, NameNotFoundError, UnsupportedShapeError,
 										   InvalidShapeError, WrongObjectError, InvalidPreceedingLayerError,
 										   InvalidRangeError)
@@ -23,6 +24,7 @@ __pdoc__['Layer.set_weights'] = False
 for layer_n in ['Dense', 'BatchNorm', 'Dropout',
 				'Conv1D', 'Pool1D', 'GlobalPool1D', 'Upsample1D',
 				'Conv2D', 'Pool2D', 'GlobalPool2D', 'Upsample2D',
+				'FastConv2D', 'FastPool2D',
 				'Conv3D', 'Pool3D', 'GlobalPool3D', 'Upsample3D',
 				'Flatten', 'Activation', 'Reshape']:
 	__pdoc__[layer_n + '.__call__'] = True
@@ -36,6 +38,7 @@ def get(layer_name):
 	layers = [Dense, BatchNorm, Dropout,
 			  Conv1D, Pool1D, GlobalPool1D, Upsample1D,
 			  Conv2D, Pool2D, GlobalPool2D, Upsample2D,
+			  FastConv2D, FastPool2D,
 			  Conv3D, Pool3D, GlobalPool3D, Upsample3D,
 			  Flatten, Activation, Reshape]
 	for layer in layers:
@@ -976,6 +979,77 @@ class Conv2D(Layer):
 		self.biases = np.array(biases)
 
 
+class FastConv2D(Conv2D):
+	"""Efficient 2-Dimensional Convolution Layer."""
+
+	__name__ = 'FastConv2D'
+
+	def __call__(self, x, training=False):
+		x = x.transpose(0, 3, 1, 2)
+		kernel = self.kernel.transpose(0, 3, 1, 2)
+
+		m, n_C_prev, n_H_prev, n_W_prev = x.shape
+
+		n_c_out, f_h, f_w, n_c_in = self.kernel.shape
+		p_h, p_w = 0, 0
+		s_h, s_w = self.strides
+		if self.same_padding:
+			p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+		n_H = int((n_H_prev + 2 * p_h - f_h) / s_h) + 1
+		n_W = int((n_W_prev + 2 * p_w - f_w) / s_w) + 1
+
+		X_col = im2col(x, f_h, f_w, s_h, p_h)
+		w_col = kernel.reshape((n_c_out, -1))
+		b_col = self.biases.reshape(-1, 1)
+
+		# Perform matrix multiplication.
+		out = w_col @ X_col + b_col
+
+		# Reshape back matrix to image.
+		out = np.array(np.hsplit(out, m)).reshape((m, n_c_out, n_H, n_W))
+		out = out.transpose(0, 2, 3, 1)
+
+		self.cache = x, X_col, w_col
+		return out
+
+	def diff(self, da):
+		da = da.transpose(0, 3, 1, 2)
+
+		n_c_out, f_h, f_w, n_c_in = self.kernel.shape
+		p_h, p_w = 0, 0
+		s_h, s_w = self.strides
+		if self.same_padding:
+			p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+		x, X_col, w_col = self.cache
+		m = x.shape[0]
+
+		# Compute bias gradient.
+		db = np.sum(da, axis=(0, 2, 3))
+
+		# Reshape da properly.
+		da = da.reshape(da.shape[0] * da.shape[1], da.shape[2] * da.shape[3])
+		da = np.array(np.vsplit(da, m))
+		da = np.concatenate(da, axis=-1)
+
+		# Perform matrix multiplication between reshaped da and w_col to get dX_col.
+		dX_col = w_col.T @ da
+		# Perform matrix multiplication between reshaped da and X_col to get dW_col.
+		dw_col = da @ X_col.T
+
+		# Reshape back to image (col2im).
+		dX = col2im(dX_col, x.shape, f_h, f_w, s_h, p_h)
+		# Reshape dw_col into dw.
+		dW = dw_col.reshape((dw_col.shape[0], n_c_out, f_h, f_w))
+
+		dX.transpose(0, 2, 3, 1)
+		dW.transpose(0, 2, 3, 1)
+		db.reshape((-1, 1, 1, 1))
+
+		return dX, dW, db
+
+
 class Pool2D(Layer):
 	"""2-Dimensional Pooling Layer."""
 
@@ -1123,6 +1197,63 @@ class Pool2D(Layer):
 						)
 
 		return dx, np.array([[0]]), np.array([[0]])
+
+
+class FastPool2D(Pool2D):
+	"""Efficient 2-Dimensional Pooling Layer."""
+
+	__name__ = 'FastPool2D'
+
+	def __call__(self, x, training=False):
+		self.x = x.transpose(0, 3, 1, 2)
+
+		m, n_C_prev, n_H_prev, n_W_prev = self.x.shape
+		f_h, f_w = self.pool_size
+		p_h, p_w = 0, 0
+		s_h, s_w = self.strides
+		if self.same_padding:
+			p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+		n_C = n_C_prev
+		n_H = int((n_H_prev + 2 * p_h - f_h) / s_h) + 1
+		n_W = int((n_W_prev + 2 * p_w - f_w) / s_w) + 1
+
+		X_col = im2col(self.x, f_h, f_w, s_h, p_h)
+		X_col = X_col.reshape(n_C, X_col.shape[0] // n_C, -1)
+		if self.mode == 'max':
+			A_pool = np.max(X_col, axis=1)
+			# self.mask = np.equal()
+		else:
+			A_pool = np.mean(X_col, axis=1)
+		# Reshape A_pool properly.
+		A_pool = np.array(np.hsplit(A_pool, m))
+		A_pool = A_pool.reshape((m, n_C, n_H, n_W))
+
+		A_pool.transpose(0, 2, 3, 1)
+		return A_pool
+
+	def diff(self, da):
+		dout = da.transpose(0, 3, 1, 2)
+
+		m, n_C_prev, n_H_prev, n_W_prev = self.x.shape
+		f_h, f_w = self.pool_size
+		p_h, p_w = 0, 0
+		s_h, s_w = self.strides
+		if self.same_padding :
+			p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+		n_C = n_C_prev
+
+		dout_flatten = dout.reshape(n_C, -1) / (f_h * f_w)
+		dX_col = np.repeat(dout_flatten, f_h * f_w, axis=0)
+		dX = col2im(dX_col, self.x.shape, f_h, f_w, s_h, p_h)
+		# Reshape dX properly.
+		dX = dX.reshape(m, -1)
+		dX = np.array(np.hsplit(dX, n_C_prev))
+		dX = dX.reshape((m, n_C_prev, n_H_prev, n_W_prev))
+
+		dW.transpose(0, 2, 3, 1)
+		return dX, np.array([[0]]), np.array([[0]])
 
 
 class GlobalPool2D(Layer):
