@@ -201,7 +201,7 @@ class Sequential(Model):
 		n_out = [str(ch) for ch in self.n_out]
 		self.output_shape = '(None' + (',{:4}'*len(n_out)).format(*n_out) + ')'
 
-	def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, live_plot=True, shuffle=True,
+	def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, live_plot=False, shuffle=True,
 			valid_split=None, valid_data=None, valid_batch_size=None):
 		"""Fit the model to the training data.
 
