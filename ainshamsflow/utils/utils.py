@@ -74,11 +74,13 @@ def get_indices(X_shape, HF, WF, stride, pad):
             during multi-dimensional arrays indexing).
     """
 	# get input size
-	m, n_C, n_H, n_W = X_shape
+	m, n_H, n_W, n_C = X_shape
+	p_h, p_w = pad
+	s_h, s_w = stride
 
 	# get output size
-	out_h = int((n_H + 2 * pad - HF) / stride) + 1
-	out_w = int((n_W + 2 * pad - WF) / stride) + 1
+	out_h = int((n_H + 2 * p_h - HF) / s_h) + 1
+	out_w = int((n_W + 2 * p_w - WF) / s_w) + 1
 
 	# ----Compute matrix of index i----
 
@@ -87,7 +89,7 @@ def get_indices(X_shape, HF, WF, stride, pad):
 	# Duplicate for the other channels.
 	level1 = np.tile(level1, n_C)
 	# Create a vector with an increase by 1 at each level.
-	everyLevels = stride * np.repeat(np.arange(out_h), out_w)
+	everyLevels = s_h * np.repeat(np.arange(out_h), out_w)
 	# Create matrix of index i at every levels for each channel.
 	i = level1.reshape(-1, 1) + everyLevels.reshape(1, -1)
 
@@ -98,7 +100,7 @@ def get_indices(X_shape, HF, WF, stride, pad):
 	# Duplicate for the other channels.
 	slide1 = np.tile(slide1, n_C)
 	# Create a vector with an increase by 1 at each slide.
-	everySlides = stride * np.tile(np.arange(out_w), out_h)
+	everySlides = s_h * np.tile(np.arange(out_w), out_h)
 	# Create matrix of index j at every slides for each channel.
 	j = slide1.reshape(-1, 1) + everySlides.reshape(1, -1)
 
@@ -111,7 +113,7 @@ def get_indices(X_shape, HF, WF, stride, pad):
 	return i, j, d
 
 
-def im2col(X, HF, WF, stride, pad):
+def im2col(X, idx, pad):
 	"""
         Transforms our input image into a matrix.
         Parameters:
@@ -123,16 +125,17 @@ def im2col(X, HF, WF, stride, pad):
         Returns:
         -cols: output matrix.
     """
+	p_h, p_w = pad
 	# Padding
-	X_padded = np.pad(X, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant')
-	i, j, d = get_indices(X.shape, HF, WF, stride, pad)
+	X_padded = np.pad(X, ((0, 0), (0, 0), (p_h, p_h), (p_w, p_w)), mode='constant')
+	i, j, d = idx
 	# Multi-dimensional arrays indexing.
 	cols = X_padded[:, d, i, j]
 	cols = np.concatenate(cols, axis=-1)
 	return cols
 
 
-def col2im(dX_col, X_shape, HF, WF, stride, pad):
+def col2im(dX_col, X_shape,idx,  pad):
 	"""
         Transform our matrix back to the input image.
         Parameters:
@@ -147,19 +150,20 @@ def col2im(dX_col, X_shape, HF, WF, stride, pad):
     """
 	# Get input size
 	N, D, H, W = X_shape
+	p_h, p_w = pad
 	# Add padding if needed.
-	H_padded, W_padded = H + 2 * pad, W + 2 * pad
+	H_padded, W_padded = H + 2 * p_h, W + 2 * p_w
 	X_padded = np.zeros((N, D, H_padded, W_padded))
 
 	# Index matrices, necessary to transform our input image into a matrix.
-	i, j, d = get_indices(X_shape, HF, WF, stride, pad)
+	i, j, d = idx
 	# Retrieve batch dimension by spliting dX_col N times: (X, Y) => (N, X, Y)
 	dX_col_reshaped = np.array(np.hsplit(dX_col, N))
 	# Reshape our matrix back to image.
 	# slice(None) is used to produce the [::] effect which means "for every elements".
 	np.add.at(X_padded, (slice(None), d, i, j), dX_col_reshaped)
 	# Remove padding from new image if needed.
-	if pad == 0:
+	if all((p_h == 0, p_w == 0)):
 		return X_padded
-	elif type(pad) is int:
-		return X_padded[pad:-pad, pad:-pad, :, :]
+	else:
+		return X_padded[p_h:-p_h, p_w:-p_w, :, :]

@@ -29,7 +29,7 @@ for layer_n in ['Dense', 'BatchNorm', 'Dropout',
 				'Flatten', 'Activation', 'Reshape']:
 	__pdoc__[layer_n + '.__call__'] = True
 	__pdoc__[layer_n + '.diff'] = True
-	__pdoc__[layer_n + '.add_input_shape_to_layers'] = False
+	__pdoc__[layer_n + '.add_input_shape_to_layer'] = False
 
 
 def get(layer_name):
@@ -155,7 +155,7 @@ class Dense(Layer):
 		self.x = None
 		self.z = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		if len(n_in) != 1:
 			raise InvalidPreceedingLayerError(self)
 
@@ -257,7 +257,7 @@ class BatchNorm(Layer):
 
 		self.x_norm = None
 
-	def add_input_shape_to_layers(self, n):
+	def add_input_shape_to_layer(self, n):
 		self.n_out = (1,) + n
 		self.input_shape = self.output_shape = '(None' + (',{:4}' * len(n)).format(*n) + ')'
 
@@ -339,7 +339,7 @@ class Dropout(Layer):
 		self.output_shape = None
 		self.filters = None
 
-	def add_input_shape_to_layers(self, n):
+	def add_input_shape_to_layer(self, n):
 		self.n_out = self.n_in = n
 		self.input_shape = self.output_shape = '(None' + (',{:4}'*len(n)).format(*n) + ')'
 		return n
@@ -432,7 +432,7 @@ class Conv1D(Layer):
 		self.kernel = kernel_size
 		self.biases = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		if len(n_in) != 2:
 			raise InvalidPreceedingLayerError(self)
 
@@ -595,7 +595,7 @@ class Pool1D(Layer):
 		self.x = None
 		self.z = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		if len(n_in) != 2:
 			raise InvalidPreceedingLayerError(self)
 
@@ -761,7 +761,7 @@ class Upsample1D(Layer):
 		self.input_shape = None
 		self.output_shape = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		if len(n_in) != 2:
 			raise InvalidPreceedingLayerError(self)
 
@@ -871,7 +871,7 @@ class Conv2D(Layer):
 		self.kernel = kernel_size
 		self.biases = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		if len(n_in) != 3:
 			raise InvalidPreceedingLayerError(self)
 
@@ -984,6 +984,21 @@ class FastConv2D(Conv2D):
 
 	__name__ = 'FastConv2D'
 
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.idx = None
+
+	def add_input_shape_to_layer(self, n_in):
+		n_out = super().add_input_shape_to_layer(n_in)
+		f_h, f_w = self.kernel.shape[1:3]
+		p_h = (self.kernel[0] - 1) // 2 if self.same_padding else 0
+		p_w = (self.kernel[1] - 1) // 2 if self.same_padding else 0
+		x_shape = (1,) + n_in
+
+		self.idx = get_indices(x_shape, f_h, f_w, self.strides, (p_h, p_w)) # i, j ,d
+
+		return n_out
+
 	def __call__(self, x, training=False):
 		x = x.transpose(0, 3, 1, 2)
 		kernel = self.kernel.transpose(0, 3, 1, 2)
@@ -999,7 +1014,7 @@ class FastConv2D(Conv2D):
 		n_H = int((n_H_prev + 2 * p_h - f_h) / s_h) + 1
 		n_W = int((n_W_prev + 2 * p_w - f_w) / s_w) + 1
 
-		X_col = im2col(x, f_h, f_w, s_h, p_h)
+		X_col = im2col(x, self.idx, (p_h, p_w))
 		w_col = kernel.reshape((n_c_out, -1))
 		b_col = self.biases.reshape(-1, 1)
 
@@ -1018,7 +1033,6 @@ class FastConv2D(Conv2D):
 
 		n_c_out, f_h, f_w, n_c_in = self.kernel.shape
 		p_h, p_w = 0, 0
-		s_h, s_w = self.strides
 		if self.same_padding:
 			p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
 
@@ -1039,7 +1053,7 @@ class FastConv2D(Conv2D):
 		dw_col = da @ X_col.T
 
 		# Reshape back to image (col2im).
-		dX = col2im(dX_col, x.shape, f_h, f_w, s_h, p_h)
+		dX = col2im(dX_col, x.shape, self.idx, (p_h, p_w))
 		# Reshape dw_col into dw.
 		dW = dw_col.reshape((dw_col.shape[0], n_c_out, f_h, f_w))
 
@@ -1114,7 +1128,7 @@ class Pool2D(Layer):
 		self.x = None
 		self.z = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		if len(n_in) != 3:
 			raise InvalidPreceedingLayerError(self)
 
@@ -1204,6 +1218,21 @@ class FastPool2D(Pool2D):
 
 	__name__ = 'FastPool2D'
 
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.idx = None
+
+	def add_input_shape_to_layer(self, n_in):
+		n_out = super().add_input_shape_to_layer(n_in)
+		f_h, f_w = self.pool_size
+		p_h = (self.pool_size[0] - 1) // 2 if self.same_padding else 0
+		p_w = (self.pool_size[1] - 1) // 2 if self.same_padding else 0
+		x_shape = (1,) + n_in
+
+		self.idx = get_indices(x_shape, f_h, f_w, self.strides, (p_h, p_w))  # i, j ,d
+
+		return n_out
+
 	def __call__(self, x, training=False):
 		self.x = x.transpose(0, 3, 1, 2)
 
@@ -1218,7 +1247,7 @@ class FastPool2D(Pool2D):
 		n_H = int((n_H_prev + 2 * p_h - f_h) / s_h) + 1
 		n_W = int((n_W_prev + 2 * p_w - f_w) / s_w) + 1
 
-		X_col = im2col(self.x, f_h, f_w, s_h, p_h)
+		X_col = im2col(self.x, self.idx, (p_h, p_w))
 		X_col = X_col.reshape(n_C, X_col.shape[0] // n_C, -1)
 		if self.mode == 'max':
 			A_pool = np.max(X_col, axis=1)
@@ -1246,7 +1275,7 @@ class FastPool2D(Pool2D):
 
 		dout_flatten = dout.reshape(n_C, -1) / (f_h * f_w)
 		dX_col = np.repeat(dout_flatten, f_h * f_w, axis=0)
-		dX = col2im(dX_col, self.x.shape, f_h, f_w, s_h, p_h)
+		dX = col2im(dX_col, self.x.shape, self.idx, (p_h, p_w))
 		# Reshape dX properly.
 		dX = dX.reshape(m, -1)
 		dX = np.array(np.hsplit(dX, n_C_prev))
@@ -1346,7 +1375,7 @@ class Upsample2D(Layer):
 		self.input_shape = None
 		self.output_shape = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		if len(n_in) != 3:
 			raise InvalidPreceedingLayerError(self)
 
@@ -1459,7 +1488,7 @@ class Conv3D(Layer):
 		self.kernel = kernel_size
 		self.biases = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		if len(n_in) != 4:
 			raise InvalidPreceedingLayerError(self)
 
@@ -1641,7 +1670,7 @@ class Pool3D(Layer):
 		self.x = None
 		self.z = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		if len(n_in) != 4:
 			raise InvalidPreceedingLayerError(self)
 
@@ -1827,7 +1856,7 @@ class Upsample3D(Layer):
 		self.input_shape = None
 		self.output_shape = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		if len(n_in) != 4:
 			raise InvalidPreceedingLayerError(self)
 
@@ -1894,7 +1923,7 @@ class Flatten(Layer):
 		self.input_shape = None
 		self.output_shape = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		self.n_in = n_in
 		self.n_out = (np.prod(n_in),)
 		self.input_shape = '(None' + (',{:4}'*len(self.n_in)).format(*self.n_in) + ')'
@@ -1941,7 +1970,7 @@ class Activation(Layer):
 		self.output_shape = None
 		self.x = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		self.n_in = self.n_out = n_in
 		self.input_shape = self.output_shape = '(None' + (',{:4}' * len(n_in)).format(*n_in) + ')'
 		return self.n_out
@@ -1992,7 +2021,7 @@ class Reshape(Layer):
 		self.input_shape = None
 		self.output_shape = None
 
-	def add_input_shape_to_layers(self, n_in):
+	def add_input_shape_to_layer(self, n_in):
 		self.n_in = n_in
 
 		if self.unk_ch_id is not None:
