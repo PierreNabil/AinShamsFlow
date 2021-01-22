@@ -65,7 +65,9 @@ model.compile(
 history = model.fit(
 	ds_train,
 	epochs=10,
-	valid_data=ds_valid
+	valid_data=ds_valid,
+	batch_size=1024,
+	valid_batch_size=512
 )
 history.show()
 

@@ -1055,11 +1055,11 @@ class FastConv2D(Conv2D):
 		# Reshape back to image (col2im).
 		dX = col2im(dX_col, x.shape, self.idx, (p_h, p_w))
 		# Reshape dw_col into dw.
-		dW = dw_col.reshape((dw_col.shape[0], n_c_out, f_h, f_w))
+		dW = dw_col.reshape((n_c_out, n_c_in, f_h, f_w))
 
-		dX.transpose(0, 2, 3, 1)
-		dW.transpose(0, 2, 3, 1)
-		db.reshape((-1, 1, 1, 1))
+		dX = dX.transpose(0, 2, 3, 1)
+		dW = dW.transpose(0, 2, 3, 1)
+		db = db.reshape((-1, 1, 1, 1))
 
 		return dX, dW, db
 
@@ -1258,7 +1258,7 @@ class FastPool2D(Pool2D):
 		A_pool = np.array(np.hsplit(A_pool, m))
 		A_pool = A_pool.reshape((m, n_C, n_H, n_W))
 
-		A_pool.transpose(0, 2, 3, 1)
+		A_pool = A_pool.transpose(0, 2, 3, 1)
 		return A_pool
 
 	def diff(self, da):
@@ -1281,7 +1281,7 @@ class FastPool2D(Pool2D):
 		dX = np.array(np.hsplit(dX, n_C_prev))
 		dX = dX.reshape((m, n_C_prev, n_H_prev, n_W_prev))
 
-		dW.transpose(0, 2, 3, 1)
+		dX = dX.transpose(0, 2, 3, 1)
 		return dX, np.array([[0]]), np.array([[0]])
 
 

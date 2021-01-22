@@ -5,10 +5,12 @@ Stocastic Gradient Descent (SGD).
 """
 
 import numpy as np
+import time
 
 from ainshamsflow.metrics import Metric
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
 from ainshamsflow.utils.history import History
+from ainshamsflow.utils.utils import time_elapsed
 
 
 def get(opt_name):
@@ -68,6 +70,7 @@ class Optimizer:
                 print('Training Model for {} epochs:'.format(epochs))
             else:
                 print('Evaluating Model:')
+            t1 = time.time()
 
         for i, (batch_x, batch_y) in enumerate(ds_train):
             loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
@@ -89,10 +92,12 @@ class Optimizer:
             val_metrics_values = np.array(val_metrics_values).mean(axis=0)
 
         if verbose:
+            t2 = time.time()
             if training:
                 print('Epoch #{:4d}:'.format(0), end=' ')
 
             print(
+                't={},'.format(time_elapsed(t2-t1)),
                 '{}={:8.4f},'.format('loss', loss_values),
                 *['{}={:8.4f},'.format(metric.__name__, metrics_values[j])
                   for j, metric in enumerate(metrics)],
@@ -122,6 +127,8 @@ class Optimizer:
             val_loss_values = []
             val_metrics_values = []
 
+            t1 = time.time()
+
             for i, (batch_x, batch_y) in enumerate(ds_train):
                 loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
                                                                    loss, metrics, regularizer, training, i)
@@ -146,8 +153,9 @@ class Optimizer:
                 history.show()
 
             if verbose:
+                t2 = time.time()
                 print(
-                    'Epoch #{:4d}:'.format(epoch_num+1),
+                    'Epoch #{:4d}: t={},'.format(epoch_num+1, time_elapsed(t2-t1)),
                     '{}={:8.4f},'.format('loss', loss_values),
                     *['{}={:8.4f},'.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)],
                     end=' '

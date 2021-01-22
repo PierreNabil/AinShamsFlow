@@ -167,3 +167,14 @@ def col2im(dX_col, X_shape,idx,  pad):
 		return X_padded
 	else:
 		return X_padded[p_h:-p_h, p_w:-p_w, :, :]
+
+
+def time_elapsed(t):
+	if t > 60:
+		return '{:.3f} mins'.format(t/60)
+	elif t > 0:
+		return '{:.3f} s'.format(t)
+	elif t > 1e-3:
+		return '{:.3f} ms'.format(t*1e3)
+	else:
+		return '{} us'.format(t*1e6)
