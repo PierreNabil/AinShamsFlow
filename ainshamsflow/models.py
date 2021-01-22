@@ -195,7 +195,7 @@ class Sequential(Model):
 		self.layers = layers
 
 		for layer in self.layers:
-			input_shape = layer.add_input_shape_to_layers(input_shape)
+			input_shape = layer.add_input_shape_to_layer(input_shape)
 
 		self.n_out = self.layers[-1].n_out
 		n_out = [str(ch) for ch in self.n_out]

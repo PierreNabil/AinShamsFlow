@@ -196,10 +196,12 @@ class LogLossLinear(Loss):
     __name__ = "LogLossLinear"
 
     def __call__(self, y_pred, y_true):
-        return np.sum(np.log(1 + np.exp(-y_true * y_pred)))
+        m = y_pred.shape[0]
+        return np.sum(np.log(1 + np.exp(-y_true * y_pred))) / m
 
     def diff(self, y_pred, y_true):
-        return -y_true * np.exp(-y_true * y_pred) / (1 + np.exp(-y_true * y_pred))
+        m = y_pred.shape[0]
+        return -y_true * np.exp(-y_true * y_pred) / (1 + np.exp(-y_true * y_pred)) / m
 
 
 class LogLossSigmoid(Loss):
@@ -226,8 +228,9 @@ class LogLossSigmoid(Loss):
         return -np.sum(np.log(np.abs(y_true / 2 - 0.5 + y_pred))) / m
 
     def diff(self, y_pred, y_true):
+        m = y_pred.shape[0]
         x = y_true / 2 - 0.5 + y_pred
-        return -np.sign(x) / np.abs(x)
+        return -np.sign(x) / np.abs(x) / m
 
 
 class PerceptronCriterion(Loss):
@@ -305,7 +308,8 @@ class BinaryCrossentropy(Loss):
         return -np.sum(np.where(y_true, np.log(y_pred), np.log(1 - y_pred))) / m
 
     def diff(self, y_pred, y_true):
-        return y_pred - y_true
+        m = y_pred.shape[0]
+        return (y_pred - y_true) / m
 
 
 class CategoricalCrossentropy(Loss):
@@ -327,10 +331,12 @@ class CategoricalCrossentropy(Loss):
     __name__ = 'CategoricalCrossentropy'
 
     def __call__(self, y_pred, y_true):
-        return -np.mean(np.log(np.max(y_true * y_pred, axis=1) + 1e-6))
+        m = y_pred.shape[0]
+        return -np.sum(np.log(np.max(y_true * y_pred, axis=1) + 1e-6)) / m
 
     def diff(self, y_pred, y_true):
-        return y_pred - y_true
+        m = y_pred.shape[0]
+        return (y_pred - y_true) / m
 
 
 class SparseCategoricalCrossentropy(Loss):
@@ -354,11 +360,13 @@ class SparseCategoricalCrossentropy(Loss):
     __name__ = 'SparseCategoricalCrossentropy'
 
     def __call__(self, y_pred, y_true):
+        m = y_pred.shape[0]
         n_c = y_pred.shape[-1]
         y_true = true_one_hot(y_true, n_c)
-        return -np.mean(np.log(np.max(y_true * y_pred, axis=1)))
+        return -np.sum(np.log(np.max(y_true * y_pred, axis=1))) / m
 
     def diff(self, y_pred, y_true):
+        m = y_pred.shape[0]
         n_c = y_pred.shape[-1]
         y_true = true_one_hot(y_true, n_c)
-        return y_pred - y_true
+        return (y_pred - y_true) / m

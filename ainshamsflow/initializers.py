@@ -59,7 +59,7 @@ class Uniform(Initializer):
 class Normal(Initializer):
 	"""Normal (Gaussian) Distribution Initializer."""
 
-	def __init__(self, mean=0, std=1):
+	def __init__(self, mean=0, std=0.1):
 		if not std > 0:
 			raise InvalidRangeError(std, 0)
 		self.mean = mean
