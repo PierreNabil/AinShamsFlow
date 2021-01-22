@@ -36,10 +36,12 @@ Stocastic Gradient Descent (SGD).
 &#34;&#34;&#34;
 
 import numpy as np
+import time
 
 from ainshamsflow.metrics import Metric
 from ainshamsflow.utils.asf_errors import BaseClassError, NameNotFoundError, UnsupportedShapeError
 from ainshamsflow.utils.history import History
+from ainshamsflow.utils.utils import time_elapsed
 
 
 def get(opt_name):
@@ -74,7 +76,8 @@ class Optimizer:
         &#34;&#34;&#34;Initialize the Learning Rate.&#34;&#34;&#34;
         self.lr = lr
 
-    def __call__(self, ds_train, ds_valid, epochs, train_batch_size, valid_batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
+    def __call__(self, ds_train, ds_valid, epochs, train_batch_size, valid_batch_size, layers, loss, metrics,
+                 regularizer, training=True, verbose=True, live_plot=False):
         &#34;&#34;&#34;Run optimization using Gradient Descent. Return History Object for training session.&#34;&#34;&#34;
 
         m = ds_train.cardinality()
@@ -98,6 +101,7 @@ class Optimizer:
                 print(&#39;Training Model for {} epochs:&#39;.format(epochs))
             else:
                 print(&#39;Evaluating Model:&#39;)
+            t1 = time.time()
 
         for i, (batch_x, batch_y) in enumerate(ds_train):
             loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
@@ -119,10 +123,12 @@ class Optimizer:
             val_metrics_values = np.array(val_metrics_values).mean(axis=0)
 
         if verbose:
+            t2 = time.time()
             if training:
                 print(&#39;Epoch #{:4d}:&#39;.format(0), end=&#39; &#39;)
 
             print(
+                &#39;t={},&#39;.format(time_elapsed(t2-t1)),
                 &#39;{}={:8.4f},&#39;.format(&#39;loss&#39;, loss_values),
                 *[&#39;{}={:8.4f},&#39;.format(metric.__name__, metrics_values[j])
                   for j, metric in enumerate(metrics)],
@@ -152,6 +158,8 @@ class Optimizer:
             val_loss_values = []
             val_metrics_values = []
 
+            t1 = time.time()
+
             for i, (batch_x, batch_y) in enumerate(ds_train):
                 loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
                                                                    loss, metrics, regularizer, training, i)
@@ -172,10 +180,13 @@ class Optimizer:
                 val_metrics_values = np.array(val_metrics_values).mean(axis=0)
 
             history.add(loss_values, metrics_values, val_loss_values, val_metrics_values)
+            if live_plot:
+                history.show()
 
             if verbose:
+                t2 = time.time()
                 print(
-                    &#39;Epoch #{:4d}:&#39;.format(epoch_num+1),
+                    &#39;Epoch #{:4d}: t={},&#39;.format(epoch_num+1, time_elapsed(t2-t1)),
                     &#39;{}={:8.4f},&#39;.format(&#39;loss&#39;, loss_values),
                     *[&#39;{}={:8.4f},&#39;.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)],
                     end=&#39; &#39;
@@ -681,7 +692,8 @@ _update() method.</p>
         &#34;&#34;&#34;Initialize the Learning Rate.&#34;&#34;&#34;
         self.lr = lr
 
-    def __call__(self, ds_train, ds_valid, epochs, train_batch_size, valid_batch_size, layers, loss, metrics, regularizer, training=True, verbose=True):
+    def __call__(self, ds_train, ds_valid, epochs, train_batch_size, valid_batch_size, layers, loss, metrics,
+                 regularizer, training=True, verbose=True, live_plot=False):
         &#34;&#34;&#34;Run optimization using Gradient Descent. Return History Object for training session.&#34;&#34;&#34;
 
         m = ds_train.cardinality()
@@ -705,6 +717,7 @@ _update() method.</p>
                 print(&#39;Training Model for {} epochs:&#39;.format(epochs))
             else:
                 print(&#39;Evaluating Model:&#39;)
+            t1 = time.time()
 
         for i, (batch_x, batch_y) in enumerate(ds_train):
             loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
@@ -726,10 +739,12 @@ _update() method.</p>
             val_metrics_values = np.array(val_metrics_values).mean(axis=0)
 
         if verbose:
+            t2 = time.time()
             if training:
                 print(&#39;Epoch #{:4d}:&#39;.format(0), end=&#39; &#39;)
 
             print(
+                &#39;t={},&#39;.format(time_elapsed(t2-t1)),
                 &#39;{}={:8.4f},&#39;.format(&#39;loss&#39;, loss_values),
                 *[&#39;{}={:8.4f},&#39;.format(metric.__name__, metrics_values[j])
                   for j, metric in enumerate(metrics)],
@@ -759,6 +774,8 @@ _update() method.</p>
             val_loss_values = []
             val_metrics_values = []
 
+            t1 = time.time()
+
             for i, (batch_x, batch_y) in enumerate(ds_train):
                 loss_value, metric_values = self._single_iteration(batch_x, batch_y, m, layers,
                                                                    loss, metrics, regularizer, training, i)
@@ -779,10 +796,13 @@ _update() method.</p>
                 val_metrics_values = np.array(val_metrics_values).mean(axis=0)
 
             history.add(loss_values, metrics_values, val_loss_values, val_metrics_values)
+            if live_plot:
+                history.show()
 
             if verbose:
+                t2 = time.time()
                 print(
-                    &#39;Epoch #{:4d}:&#39;.format(epoch_num+1),
+                    &#39;Epoch #{:4d}: t={},&#39;.format(epoch_num+1, time_elapsed(t2-t1)),
                     &#39;{}={:8.4f},&#39;.format(&#39;loss&#39;, loss_values),
                     *[&#39;{}={:8.4f},&#39;.format(metric.__name__, metrics_values[j]) for j, metric in enumerate(metrics)],
                     end=&#39; &#39;

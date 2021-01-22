@@ -227,13 +227,13 @@ class Sequential(Model):
                 self.layers = layers
 
                 for layer in self.layers:
-                        input_shape = layer.add_input_shape_to_layers(input_shape)
+                        input_shape = layer.add_input_shape_to_layer(input_shape)
 
                 self.n_out = self.layers[-1].n_out
                 n_out = [str(ch) for ch in self.n_out]
                 self.output_shape = &#39;(None&#39; + (&#39;,{:4}&#39;*len(n_out)).format(*n_out) + &#39;)&#39;
 
-        def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, shuffle=True,
+        def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, live_plot=False, shuffle=True,
                         valid_split=None, valid_data=None, valid_batch_size=None):
                 &#34;&#34;&#34;Fit the model to the training data.
 
@@ -252,7 +252,9 @@ class Sequential(Model):
                                 `1` =&gt; online training,
                                 other int =&gt; mini-batch training.
 
-                        verbose: Whether to print training data or not during training.
+                        verbose: Whether to print training progress during training.
+
+                        live_plot: Whether to plot the training progress during training.
 
                         shuffle: Whether to shuffle the training data before training.
 
@@ -298,8 +300,8 @@ class Sequential(Model):
                 if shuffle:
                         ds_train.shuffle()
 
-                return self.optimizer(ds_train, ds_valid, epochs, batch_size, valid_batch_size, self.layers,
-                                                          self.loss, self.metrics, self.regularizer, verbose=verbose, training=True)
+                return self.optimizer(ds_train, ds_valid, epochs, batch_size, valid_batch_size, self.layers, self.loss,
+                                                          self.metrics, self.regularizer, verbose=verbose, live_plot=live_plot, training=True)
 
         def evaluate(self, x, y=None, batch_size=None, verbose=True):
                 &#34;&#34;&#34;Evaluate the model on validation data.
@@ -331,7 +333,7 @@ class Sequential(Model):
                 if self.optimizer is None:
                         raise UncompiledModelError
                 return self.optimizer(ds, None,  1, batch_size, None, self.layers, self.loss, self.metrics, self.regularizer,
-                                                                 verbose=verbose, training=False)
+                                                                 verbose=verbose, live_plot=False, training=False)
 
         def add_layer(self, layer):
                 &#34;&#34;&#34;Add a new layer to the network.&#34;&#34;&#34;
@@ -812,13 +814,13 @@ must be a list of layer objects.</dd>
                 self.layers = layers
 
                 for layer in self.layers:
-                        input_shape = layer.add_input_shape_to_layers(input_shape)
+                        input_shape = layer.add_input_shape_to_layer(input_shape)
 
                 self.n_out = self.layers[-1].n_out
                 n_out = [str(ch) for ch in self.n_out]
                 self.output_shape = &#39;(None&#39; + (&#39;,{:4}&#39;*len(n_out)).format(*n_out) + &#39;)&#39;
 
-        def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, shuffle=True,
+        def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, live_plot=False, shuffle=True,
                         valid_split=None, valid_data=None, valid_batch_size=None):
                 &#34;&#34;&#34;Fit the model to the training data.
 
@@ -837,7 +839,9 @@ must be a list of layer objects.</dd>
                                 `1` =&gt; online training,
                                 other int =&gt; mini-batch training.
 
-                        verbose: Whether to print training data or not during training.
+                        verbose: Whether to print training progress during training.
+
+                        live_plot: Whether to plot the training progress during training.
 
                         shuffle: Whether to shuffle the training data before training.
 
@@ -883,8 +887,8 @@ must be a list of layer objects.</dd>
                 if shuffle:
                         ds_train.shuffle()
 
-                return self.optimizer(ds_train, ds_valid, epochs, batch_size, valid_batch_size, self.layers,
-                                                          self.loss, self.metrics, self.regularizer, verbose=verbose, training=True)
+                return self.optimizer(ds_train, ds_valid, epochs, batch_size, valid_batch_size, self.layers, self.loss,
+                                                          self.metrics, self.regularizer, verbose=verbose, live_plot=live_plot, training=True)
 
         def evaluate(self, x, y=None, batch_size=None, verbose=True):
                 &#34;&#34;&#34;Evaluate the model on validation data.
@@ -916,7 +920,7 @@ must be a list of layer objects.</dd>
                 if self.optimizer is None:
                         raise UncompiledModelError
                 return self.optimizer(ds, None,  1, batch_size, None, self.layers, self.loss, self.metrics, self.regularizer,
-                                                                 verbose=verbose, training=False)
+                                                                 verbose=verbose, live_plot=False, training=False)
 
         def add_layer(self, layer):
                 &#34;&#34;&#34;Add a new layer to the network.&#34;&#34;&#34;
@@ -1155,11 +1159,11 @@ other int =&gt; mini-batch evaluation.</dd>
         if self.optimizer is None:
                 raise UncompiledModelError
         return self.optimizer(ds, None,  1, batch_size, None, self.layers, self.loss, self.metrics, self.regularizer,
-                                                         verbose=verbose, training=False)</code></pre>
+                                                         verbose=verbose, live_plot=False, training=False)</code></pre>
 </details>
 </dd>
 <dt id="ainshamsflow.models.Sequential.fit"><code class="name flex">
-<span>def <span class="ident">fit</span></span>(<span>self, x, y=None, epochs=1, batch_size=None, verbose=True, shuffle=True, valid_split=None, valid_data=None, valid_batch_size=None)</span>
+<span>def <span class="ident">fit</span></span>(<span>self, x, y=None, epochs=1, batch_size=None, verbose=True, live_plot=False, shuffle=True, valid_split=None, valid_data=None, valid_batch_size=None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Fit the model to the training data.</p>
@@ -1180,7 +1184,9 @@ Only used if <code>x</code> doesn't have the labels included in the dataset obje
 <code>1</code> =&gt; online training,
 other int =&gt; mini-batch training.</dd>
 <dt><strong><code>verbose</code></strong></dt>
-<dd>Whether to print training data or not during training.</dd>
+<dd>Whether to print training progress during training.</dd>
+<dt><strong><code>live_plot</code></strong></dt>
+<dd>Whether to plot the training progress during training.</dd>
 <dt><strong><code>shuffle</code></strong></dt>
 <dd>Whether to shuffle the training data before training.</dd>
 <dt><strong><code>valid_split</code></strong></dt>
@@ -1211,7 +1217,7 @@ you can plot the learning curves by using:</dd>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, shuffle=True,
+<pre><code class="python">def fit(self, x, y=None, epochs=1, batch_size=None, verbose=True, live_plot=False, shuffle=True,
                 valid_split=None, valid_data=None, valid_batch_size=None):
         &#34;&#34;&#34;Fit the model to the training data.
 
@@ -1230,7 +1236,9 @@ you can plot the learning curves by using:</dd>
                         `1` =&gt; online training,
                         other int =&gt; mini-batch training.
 
-                verbose: Whether to print training data or not during training.
+                verbose: Whether to print training progress during training.
+
+                live_plot: Whether to plot the training progress during training.
 
                 shuffle: Whether to shuffle the training data before training.
 
@@ -1276,8 +1284,8 @@ you can plot the learning curves by using:</dd>
         if shuffle:
                 ds_train.shuffle()
 
-        return self.optimizer(ds_train, ds_valid, epochs, batch_size, valid_batch_size, self.layers,
-                                                  self.loss, self.metrics, self.regularizer, verbose=verbose, training=True)</code></pre>
+        return self.optimizer(ds_train, ds_valid, epochs, batch_size, valid_batch_size, self.layers, self.loss,
+                                                  self.metrics, self.regularizer, verbose=verbose, live_plot=live_plot, training=True)</code></pre>
 </details>
 </dd>
 <dt id="ainshamsflow.models.Sequential.get_layer"><code class="name flex">

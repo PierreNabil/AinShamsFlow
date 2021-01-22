@@ -37,6 +37,7 @@ import numpy as np
 
 from ainshamsflow import activations
 from ainshamsflow import initializers
+from ainshamsflow.utils.utils import get_indices, col2im, im2col
 from ainshamsflow.utils.asf_errors import (BaseClassError, NameNotFoundError, UnsupportedShapeError,
                                                                                    InvalidShapeError, WrongObjectError, InvalidPreceedingLayerError,
                                                                                    InvalidRangeError)
@@ -53,11 +54,12 @@ __pdoc__[&#39;Layer.set_weights&#39;] = False
 for layer_n in [&#39;Dense&#39;, &#39;BatchNorm&#39;, &#39;Dropout&#39;,
                                 &#39;Conv1D&#39;, &#39;Pool1D&#39;, &#39;GlobalPool1D&#39;, &#39;Upsample1D&#39;,
                                 &#39;Conv2D&#39;, &#39;Pool2D&#39;, &#39;GlobalPool2D&#39;, &#39;Upsample2D&#39;,
+                                &#39;FastConv2D&#39;, &#39;FastPool2D&#39;,
                                 &#39;Conv3D&#39;, &#39;Pool3D&#39;, &#39;GlobalPool3D&#39;, &#39;Upsample3D&#39;,
                                 &#39;Flatten&#39;, &#39;Activation&#39;, &#39;Reshape&#39;]:
         __pdoc__[layer_n + &#39;.__call__&#39;] = True
         __pdoc__[layer_n + &#39;.diff&#39;] = True
-        __pdoc__[layer_n + &#39;.add_input_shape_to_layers&#39;] = False
+        __pdoc__[layer_n + &#39;.add_input_shape_to_layer&#39;] = False
 
 
 def get(layer_name):
@@ -66,6 +68,7 @@ def get(layer_name):
         layers = [Dense, BatchNorm, Dropout,
                           Conv1D, Pool1D, GlobalPool1D, Upsample1D,
                           Conv2D, Pool2D, GlobalPool2D, Upsample2D,
+                          FastConv2D, FastPool2D,
                           Conv3D, Pool3D, GlobalPool3D, Upsample3D,
                           Flatten, Activation, Reshape]
         for layer in layers:
@@ -182,7 +185,7 @@ class Dense(Layer):
                 self.x = None
                 self.z = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 1:
                         raise InvalidPreceedingLayerError(self)
 
@@ -284,7 +287,7 @@ class BatchNorm(Layer):
 
                 self.x_norm = None
 
-        def add_input_shape_to_layers(self, n):
+        def add_input_shape_to_layer(self, n):
                 self.n_out = (1,) + n
                 self.input_shape = self.output_shape = &#39;(None&#39; + (&#39;,{:4}&#39; * len(n)).format(*n) + &#39;)&#39;
 
@@ -366,7 +369,7 @@ class Dropout(Layer):
                 self.output_shape = None
                 self.filters = None
 
-        def add_input_shape_to_layers(self, n):
+        def add_input_shape_to_layer(self, n):
                 self.n_out = self.n_in = n
                 self.input_shape = self.output_shape = &#39;(None&#39; + (&#39;,{:4}&#39;*len(n)).format(*n) + &#39;)&#39;
                 return n
@@ -459,7 +462,7 @@ class Conv1D(Layer):
                 self.kernel = kernel_size
                 self.biases = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 2:
                         raise InvalidPreceedingLayerError(self)
 
@@ -622,7 +625,7 @@ class Pool1D(Layer):
                 self.x = None
                 self.z = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 2:
                         raise InvalidPreceedingLayerError(self)
 
@@ -788,7 +791,7 @@ class Upsample1D(Layer):
                 self.input_shape = None
                 self.output_shape = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 2:
                         raise InvalidPreceedingLayerError(self)
 
@@ -898,7 +901,7 @@ class Conv2D(Layer):
                 self.kernel = kernel_size
                 self.biases = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 3:
                         raise InvalidPreceedingLayerError(self)
 
@@ -1006,6 +1009,91 @@ class Conv2D(Layer):
                 self.biases = np.array(biases)
 
 
+class FastConv2D(Conv2D):
+        &#34;&#34;&#34;Efficient 2-Dimensional Convolution Layer.&#34;&#34;&#34;
+
+        __name__ = &#39;FastConv2D&#39;
+
+        def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.idx = None
+
+        def add_input_shape_to_layer(self, n_in):
+                n_out = super().add_input_shape_to_layer(n_in)
+                f_h, f_w = self.kernel.shape[1:3]
+                p_h = (self.kernel[0] - 1) // 2 if self.same_padding else 0
+                p_w = (self.kernel[1] - 1) // 2 if self.same_padding else 0
+                x_shape = (1,) + n_in
+
+                self.idx = get_indices(x_shape, f_h, f_w, self.strides, (p_h, p_w)) # i, j ,d
+
+                return n_out
+
+        def __call__(self, x, training=False):
+                x = x.transpose(0, 3, 1, 2)
+                kernel = self.kernel.transpose(0, 3, 1, 2)
+
+                m, n_C_prev, n_H_prev, n_W_prev = x.shape
+
+                n_c_out, f_h, f_w, n_c_in = self.kernel.shape
+                p_h, p_w = 0, 0
+                s_h, s_w = self.strides
+                if self.same_padding:
+                        p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+                n_H = int((n_H_prev + 2 * p_h - f_h) / s_h) + 1
+                n_W = int((n_W_prev + 2 * p_w - f_w) / s_w) + 1
+
+                X_col = im2col(x, self.idx, (p_h, p_w))
+                w_col = kernel.reshape((n_c_out, -1))
+                b_col = self.biases.reshape(-1, 1)
+
+                # Perform matrix multiplication.
+                out = w_col @ X_col + b_col
+
+                # Reshape back matrix to image.
+                out = np.array(np.hsplit(out, m)).reshape((m, n_c_out, n_H, n_W))
+                out = out.transpose(0, 2, 3, 1)
+
+                self.cache = x, X_col, w_col
+                return out
+
+        def diff(self, da):
+                da = da.transpose(0, 3, 1, 2)
+
+                n_c_out, f_h, f_w, n_c_in = self.kernel.shape
+                p_h, p_w = 0, 0
+                if self.same_padding:
+                        p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+                x, X_col, w_col = self.cache
+                m = x.shape[0]
+
+                # Compute bias gradient.
+                db = np.sum(da, axis=(0, 2, 3))
+
+                # Reshape da properly.
+                da = da.reshape(da.shape[0] * da.shape[1], da.shape[2] * da.shape[3])
+                da = np.array(np.vsplit(da, m))
+                da = np.concatenate(da, axis=-1)
+
+                # Perform matrix multiplication between reshaped da and w_col to get dX_col.
+                dX_col = w_col.T @ da
+                # Perform matrix multiplication between reshaped da and X_col to get dW_col.
+                dw_col = da @ X_col.T
+
+                # Reshape back to image (col2im).
+                dX = col2im(dX_col, x.shape, self.idx, (p_h, p_w))
+                # Reshape dw_col into dw.
+                dW = dw_col.reshape((n_c_out, n_c_in, f_h, f_w))
+
+                dX = dX.transpose(0, 2, 3, 1)
+                dW = dW.transpose(0, 2, 3, 1)
+                db = db.reshape((-1, 1, 1, 1))
+
+                return dX, dW, db
+
+
 class Pool2D(Layer):
         &#34;&#34;&#34;2-Dimensional Pooling Layer.&#34;&#34;&#34;
 
@@ -1070,7 +1158,7 @@ class Pool2D(Layer):
                 self.x = None
                 self.z = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 3:
                         raise InvalidPreceedingLayerError(self)
 
@@ -1153,6 +1241,78 @@ class Pool2D(Layer):
                                                 )
 
                 return dx, np.array([[0]]), np.array([[0]])
+
+
+class FastPool2D(Pool2D):
+        &#34;&#34;&#34;Efficient 2-Dimensional Pooling Layer.&#34;&#34;&#34;
+
+        __name__ = &#39;FastPool2D&#39;
+
+        def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.idx = None
+
+        def add_input_shape_to_layer(self, n_in):
+                n_out = super().add_input_shape_to_layer(n_in)
+                f_h, f_w = self.pool_size
+                p_h = (self.pool_size[0] - 1) // 2 if self.same_padding else 0
+                p_w = (self.pool_size[1] - 1) // 2 if self.same_padding else 0
+                x_shape = (1,) + n_in
+
+                self.idx = get_indices(x_shape, f_h, f_w, self.strides, (p_h, p_w))  # i, j ,d
+
+                return n_out
+
+        def __call__(self, x, training=False):
+                self.x = x.transpose(0, 3, 1, 2)
+
+                m, n_C_prev, n_H_prev, n_W_prev = self.x.shape
+                f_h, f_w = self.pool_size
+                p_h, p_w = 0, 0
+                s_h, s_w = self.strides
+                if self.same_padding:
+                        p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+                n_C = n_C_prev
+                n_H = int((n_H_prev + 2 * p_h - f_h) / s_h) + 1
+                n_W = int((n_W_prev + 2 * p_w - f_w) / s_w) + 1
+
+                X_col = im2col(self.x, self.idx, (p_h, p_w))
+                X_col = X_col.reshape(n_C, X_col.shape[0] // n_C, -1)
+                if self.mode == &#39;max&#39;:
+                        A_pool = np.max(X_col, axis=1)
+                        # self.mask = np.equal()
+                else:
+                        A_pool = np.mean(X_col, axis=1)
+                # Reshape A_pool properly.
+                A_pool = np.array(np.hsplit(A_pool, m))
+                A_pool = A_pool.reshape((m, n_C, n_H, n_W))
+
+                A_pool = A_pool.transpose(0, 2, 3, 1)
+                return A_pool
+
+        def diff(self, da):
+                dout = da.transpose(0, 3, 1, 2)
+
+                m, n_C_prev, n_H_prev, n_W_prev = self.x.shape
+                f_h, f_w = self.pool_size
+                p_h, p_w = 0, 0
+                s_h, s_w = self.strides
+                if self.same_padding :
+                        p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+                n_C = n_C_prev
+
+                dout_flatten = dout.reshape(n_C, -1) / (f_h * f_w)
+                dX_col = np.repeat(dout_flatten, f_h * f_w, axis=0)
+                dX = col2im(dX_col, self.x.shape, self.idx, (p_h, p_w))
+                # Reshape dX properly.
+                dX = dX.reshape(m, -1)
+                dX = np.array(np.hsplit(dX, n_C_prev))
+                dX = dX.reshape((m, n_C_prev, n_H_prev, n_W_prev))
+
+                dX = dX.transpose(0, 2, 3, 1)
+                return dX, np.array([[0]]), np.array([[0]])
 
 
 class GlobalPool2D(Layer):
@@ -1245,7 +1405,7 @@ class Upsample2D(Layer):
                 self.input_shape = None
                 self.output_shape = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 3:
                         raise InvalidPreceedingLayerError(self)
 
@@ -1358,7 +1518,7 @@ class Conv3D(Layer):
                 self.kernel = kernel_size
                 self.biases = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 4:
                         raise InvalidPreceedingLayerError(self)
 
@@ -1540,7 +1700,7 @@ class Pool3D(Layer):
                 self.x = None
                 self.z = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 4:
                         raise InvalidPreceedingLayerError(self)
 
@@ -1726,7 +1886,7 @@ class Upsample3D(Layer):
                 self.input_shape = None
                 self.output_shape = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 4:
                         raise InvalidPreceedingLayerError(self)
 
@@ -1793,7 +1953,7 @@ class Flatten(Layer):
                 self.input_shape = None
                 self.output_shape = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 self.n_in = n_in
                 self.n_out = (np.prod(n_in),)
                 self.input_shape = &#39;(None&#39; + (&#39;,{:4}&#39;*len(self.n_in)).format(*self.n_in) + &#39;)&#39;
@@ -1840,7 +2000,7 @@ class Activation(Layer):
                 self.output_shape = None
                 self.x = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 self.n_in = self.n_out = n_in
                 self.input_shape = self.output_shape = &#39;(None&#39; + (&#39;,{:4}&#39; * len(n_in)).format(*n_in) + &#39;)&#39;
                 return self.n_out
@@ -1891,7 +2051,7 @@ class Reshape(Layer):
                 self.input_shape = None
                 self.output_shape = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 self.n_in = n_in
 
                 if self.unk_ch_id is not None:
@@ -1937,6 +2097,7 @@ class Reshape(Layer):
         layers = [Dense, BatchNorm, Dropout,
                           Conv1D, Pool1D, GlobalPool1D, Upsample1D,
                           Conv2D, Pool2D, GlobalPool2D, Upsample2D,
+                          FastConv2D, FastPool2D,
                           Conv3D, Pool3D, GlobalPool3D, Upsample3D,
                           Flatten, Activation, Reshape]
         for layer in layers:
@@ -1998,7 +2159,7 @@ the layer.</dd>
                 self.output_shape = None
                 self.x = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 self.n_in = self.n_out = n_in
                 self.input_shape = self.output_shape = &#39;(None&#39; + (&#39;,{:4}&#39; * len(n_in)).format(*n_in) + &#39;)&#39;
                 return self.n_out
@@ -2042,7 +2203,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -2136,7 +2296,7 @@ the layer.</dd>
 
                 self.x_norm = None
 
-        def add_input_shape_to_layers(self, n):
+        def add_input_shape_to_layer(self, n):
                 self.n_out = (1,) + n
                 self.input_shape = self.output_shape = &#39;(None&#39; + (&#39;,{:4}&#39; * len(n)).format(*n) + &#39;)&#39;
 
@@ -2273,7 +2433,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.summary" href="#ainshamsflow.layers.Layer.summary">summary</a></code></li>
 </ul>
@@ -2393,7 +2552,7 @@ the layer.</dd>
                 self.kernel = kernel_size
                 self.biases = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 2:
                         raise InvalidPreceedingLayerError(self)
 
@@ -2586,7 +2745,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.summary" href="#ainshamsflow.layers.Layer.summary">summary</a></code></li>
 </ul>
@@ -2706,7 +2864,7 @@ the layer.</dd>
                 self.kernel = kernel_size
                 self.biases = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 3:
                         raise InvalidPreceedingLayerError(self)
 
@@ -2817,6 +2975,10 @@ the layer.</dd>
 <ul class="hlist">
 <li><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></li>
 </ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.layers.FastConv2D" href="#ainshamsflow.layers.FastConv2D">FastConv2D</a></li>
+</ul>
 <h3>Methods</h3>
 <dl>
 <dt id="ainshamsflow.layers.Conv2D.__call__"><code class="name flex">
@@ -2912,7 +3074,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.summary" href="#ainshamsflow.layers.Layer.summary">summary</a></code></li>
 </ul>
@@ -3032,7 +3193,7 @@ the layer.</dd>
                 self.kernel = kernel_size
                 self.biases = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 4:
                         raise InvalidPreceedingLayerError(self)
 
@@ -3253,7 +3414,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.summary" href="#ainshamsflow.layers.Layer.summary">summary</a></code></li>
 </ul>
@@ -3333,7 +3493,7 @@ the layer.</dd>
                 self.x = None
                 self.z = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 1:
                         raise InvalidPreceedingLayerError(self)
 
@@ -3451,7 +3611,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.summary" href="#ainshamsflow.layers.Layer.summary">summary</a></code></li>
 </ul>
@@ -3504,7 +3663,7 @@ the layer.</dd>
                 self.output_shape = None
                 self.filters = None
 
-        def add_input_shape_to_layers(self, n):
+        def add_input_shape_to_layer(self, n):
                 self.n_out = self.n_in = n
                 self.input_shape = self.output_shape = &#39;(None&#39; + (&#39;,{:4}&#39;*len(n)).format(*n) + &#39;)&#39;
                 return n
@@ -3548,12 +3707,290 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.set_weights" href="#ainshamsflow.layers.Layer.set_weights">set_weights</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.summary" href="#ainshamsflow.layers.Layer.summary">summary</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="ainshamsflow.layers.FastConv2D"><code class="flex name class">
+<span>class <span class="ident">FastConv2D</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Efficient 2-Dimensional Convolution Layer.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>filters</code></strong></dt>
+<dd>number of filters (kernels)</dd>
+<dt><strong><code>kernel_size</code></strong></dt>
+<dd>An integer or tuple of 2 integers, specifying the height and
+width of the 2D convolution window. Can be a single integer to specify
+the same value for all spatial dimensions.</dd>
+<dt><strong><code>strides</code></strong></dt>
+<dd>An integer or tuple of 2 integers, specifying the strides of the
+convolution along the height and width. Can be a single integer to
+specify the same value for all spatial dimensions. Specifying any stride
+value != 1 is incompatible with specifying any dilation_rate value != 1.</dd>
+<dt><strong><code>padding</code></strong></dt>
+<dd>one of "valid" or "same" (case-insensitive). "valid" means no padding.
+"same" results in padding evenly to the left/right or up/down of the input such
+that output has the same height/width dimension as the input.</dd>
+<dt><strong><code>kernel_init</code></strong></dt>
+<dd>Initializer for the weights of this layer.</dd>
+<dt><strong><code>biases_init</code></strong></dt>
+<dd>Initializer for the biases of this layer.</dd>
+<dt><strong><code>activation</code></strong></dt>
+<dd>activation function used for the layer.</dd>
+<dt><strong><code>name</code></strong></dt>
+<dd>name of
+the layer.</dd>
+<dt><strong><code>trainable</code></strong></dt>
+<dd>Boolean to define whether this layer is trainable or not.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class FastConv2D(Conv2D):
+        &#34;&#34;&#34;Efficient 2-Dimensional Convolution Layer.&#34;&#34;&#34;
+
+        __name__ = &#39;FastConv2D&#39;
+
+        def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.idx = None
+
+        def add_input_shape_to_layer(self, n_in):
+                n_out = super().add_input_shape_to_layer(n_in)
+                f_h, f_w = self.kernel.shape[1:3]
+                p_h = (self.kernel[0] - 1) // 2 if self.same_padding else 0
+                p_w = (self.kernel[1] - 1) // 2 if self.same_padding else 0
+                x_shape = (1,) + n_in
+
+                self.idx = get_indices(x_shape, f_h, f_w, self.strides, (p_h, p_w)) # i, j ,d
+
+                return n_out
+
+        def __call__(self, x, training=False):
+                x = x.transpose(0, 3, 1, 2)
+                kernel = self.kernel.transpose(0, 3, 1, 2)
+
+                m, n_C_prev, n_H_prev, n_W_prev = x.shape
+
+                n_c_out, f_h, f_w, n_c_in = self.kernel.shape
+                p_h, p_w = 0, 0
+                s_h, s_w = self.strides
+                if self.same_padding:
+                        p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+                n_H = int((n_H_prev + 2 * p_h - f_h) / s_h) + 1
+                n_W = int((n_W_prev + 2 * p_w - f_w) / s_w) + 1
+
+                X_col = im2col(x, self.idx, (p_h, p_w))
+                w_col = kernel.reshape((n_c_out, -1))
+                b_col = self.biases.reshape(-1, 1)
+
+                # Perform matrix multiplication.
+                out = w_col @ X_col + b_col
+
+                # Reshape back matrix to image.
+                out = np.array(np.hsplit(out, m)).reshape((m, n_c_out, n_H, n_W))
+                out = out.transpose(0, 2, 3, 1)
+
+                self.cache = x, X_col, w_col
+                return out
+
+        def diff(self, da):
+                da = da.transpose(0, 3, 1, 2)
+
+                n_c_out, f_h, f_w, n_c_in = self.kernel.shape
+                p_h, p_w = 0, 0
+                if self.same_padding:
+                        p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+                x, X_col, w_col = self.cache
+                m = x.shape[0]
+
+                # Compute bias gradient.
+                db = np.sum(da, axis=(0, 2, 3))
+
+                # Reshape da properly.
+                da = da.reshape(da.shape[0] * da.shape[1], da.shape[2] * da.shape[3])
+                da = np.array(np.vsplit(da, m))
+                da = np.concatenate(da, axis=-1)
+
+                # Perform matrix multiplication between reshaped da and w_col to get dX_col.
+                dX_col = w_col.T @ da
+                # Perform matrix multiplication between reshaped da and X_col to get dW_col.
+                dw_col = da @ X_col.T
+
+                # Reshape back to image (col2im).
+                dX = col2im(dX_col, x.shape, self.idx, (p_h, p_w))
+                # Reshape dw_col into dw.
+                dW = dw_col.reshape((n_c_out, n_c_in, f_h, f_w))
+
+                dX = dX.transpose(0, 2, 3, 1)
+                dW = dW.transpose(0, 2, 3, 1)
+                db = db.reshape((-1, 1, 1, 1))
+
+                return dX, dW, db</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.layers.Conv2D" href="#ainshamsflow.layers.Conv2D">Conv2D</a></li>
+<li><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></li>
+</ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ainshamsflow.layers.Conv2D" href="#ainshamsflow.layers.Conv2D">Conv2D</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ainshamsflow.layers.Conv2D.__call__" href="#ainshamsflow.layers.Conv2D.__call__">__call__</a></code></li>
+</ul>
+</li>
+<li><code><b><a title="ainshamsflow.layers.Conv2D" href="#ainshamsflow.layers.Conv2D">Conv2D</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ainshamsflow.layers.Conv2D.count_params" href="#ainshamsflow.layers.Conv2D.count_params">count_params</a></code></li>
+<li><code><a title="ainshamsflow.layers.Conv2D.get_weights" href="#ainshamsflow.layers.Conv2D.get_weights">get_weights</a></code></li>
+<li><code><a title="ainshamsflow.layers.Conv2D.set_weights" href="#ainshamsflow.layers.Conv2D.set_weights">set_weights</a></code></li>
+<li><code><a title="ainshamsflow.layers.Conv2D.summary" href="#ainshamsflow.layers.Layer.summary">summary</a></code></li>
+</ul>
+</li>
+<li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="ainshamsflow.layers.FastPool2D"><code class="flex name class">
+<span>class <span class="ident">FastPool2D</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Efficient 2-Dimensional Pooling Layer.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>pool_size</code></strong></dt>
+<dd>Integer or tuple of 2 integers, factors by which to downscale. (2, 2) will halve</dd>
+<dt>the input dimensions. If only one integer is specified, the same window length will be used</dt>
+<dt>for all dimensions.</dt>
+<dt><strong><code>strides</code></strong></dt>
+<dd>Integer, or tuple of 2 integers. Factor by which to downscale. 2 will halve the input.
+If None, it will default to pool_size.</dd>
+<dt><strong><code>padding</code></strong></dt>
+<dd>One of "valid" or "same" (case-insensitive). "valid" means no padding. "same"
+results in padding evenly to the left/right or up/down of the input such that output
+has the same height/width dimension as the input.</dd>
+<dt><strong><code>mode</code></strong></dt>
+<dd>One of "max" or "avg" (case-insentitive).</dd>
+<dt><strong><code>name</code></strong></dt>
+<dd>name of
+the layer.</dd>
+<dt><strong><code>trainable</code></strong></dt>
+<dd>Boolean to define whether this layer is trainable or not.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class FastPool2D(Pool2D):
+        &#34;&#34;&#34;Efficient 2-Dimensional Pooling Layer.&#34;&#34;&#34;
+
+        __name__ = &#39;FastPool2D&#39;
+
+        def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.idx = None
+
+        def add_input_shape_to_layer(self, n_in):
+                n_out = super().add_input_shape_to_layer(n_in)
+                f_h, f_w = self.pool_size
+                p_h = (self.pool_size[0] - 1) // 2 if self.same_padding else 0
+                p_w = (self.pool_size[1] - 1) // 2 if self.same_padding else 0
+                x_shape = (1,) + n_in
+
+                self.idx = get_indices(x_shape, f_h, f_w, self.strides, (p_h, p_w))  # i, j ,d
+
+                return n_out
+
+        def __call__(self, x, training=False):
+                self.x = x.transpose(0, 3, 1, 2)
+
+                m, n_C_prev, n_H_prev, n_W_prev = self.x.shape
+                f_h, f_w = self.pool_size
+                p_h, p_w = 0, 0
+                s_h, s_w = self.strides
+                if self.same_padding:
+                        p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+                n_C = n_C_prev
+                n_H = int((n_H_prev + 2 * p_h - f_h) / s_h) + 1
+                n_W = int((n_W_prev + 2 * p_w - f_w) / s_w) + 1
+
+                X_col = im2col(self.x, self.idx, (p_h, p_w))
+                X_col = X_col.reshape(n_C, X_col.shape[0] // n_C, -1)
+                if self.mode == &#39;max&#39;:
+                        A_pool = np.max(X_col, axis=1)
+                        # self.mask = np.equal()
+                else:
+                        A_pool = np.mean(X_col, axis=1)
+                # Reshape A_pool properly.
+                A_pool = np.array(np.hsplit(A_pool, m))
+                A_pool = A_pool.reshape((m, n_C, n_H, n_W))
+
+                A_pool = A_pool.transpose(0, 2, 3, 1)
+                return A_pool
+
+        def diff(self, da):
+                dout = da.transpose(0, 3, 1, 2)
+
+                m, n_C_prev, n_H_prev, n_W_prev = self.x.shape
+                f_h, f_w = self.pool_size
+                p_h, p_w = 0, 0
+                s_h, s_w = self.strides
+                if self.same_padding :
+                        p_h, p_w = (f_h - 1) // 2, (f_w - 1) // 2
+
+                n_C = n_C_prev
+
+                dout_flatten = dout.reshape(n_C, -1) / (f_h * f_w)
+                dX_col = np.repeat(dout_flatten, f_h * f_w, axis=0)
+                dX = col2im(dX_col, self.x.shape, self.idx, (p_h, p_w))
+                # Reshape dX properly.
+                dX = dX.reshape(m, -1)
+                dX = np.array(np.hsplit(dX, n_C_prev))
+                dX = dX.reshape((m, n_C_prev, n_H_prev, n_W_prev))
+
+                dX = dX.transpose(0, 2, 3, 1)
+                return dX, np.array([[0]]), np.array([[0]])</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.layers.Pool2D" href="#ainshamsflow.layers.Pool2D">Pool2D</a></li>
+<li><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></li>
+</ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ainshamsflow.layers.Pool2D" href="#ainshamsflow.layers.Pool2D">Pool2D</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ainshamsflow.layers.Pool2D.__call__" href="#ainshamsflow.layers.Pool2D.__call__">__call__</a></code></li>
+</ul>
+</li>
+<li><code><b><a title="ainshamsflow.layers.Pool2D" href="#ainshamsflow.layers.Pool2D">Pool2D</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ainshamsflow.layers.Pool2D.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
+<li><code><a title="ainshamsflow.layers.Pool2D.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
+<li><code><a title="ainshamsflow.layers.Pool2D.set_weights" href="#ainshamsflow.layers.Layer.set_weights">set_weights</a></code></li>
+<li><code><a title="ainshamsflow.layers.Pool2D.summary" href="#ainshamsflow.layers.Layer.summary">summary</a></code></li>
+</ul>
+</li>
+<li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 </ul>
 </li>
 </ul>
@@ -3599,7 +4036,7 @@ the layer.</dd>
                 self.input_shape = None
                 self.output_shape = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 self.n_in = n_in
                 self.n_out = (np.prod(n_in),)
                 self.input_shape = &#39;(None&#39; + (&#39;,{:4}&#39;*len(self.n_in)).format(*self.n_in) + &#39;)&#39;
@@ -3643,7 +4080,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -3764,7 +4200,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -3885,7 +4320,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -4006,7 +4440,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -4239,7 +4672,7 @@ the layer.</dd>
                 self.x = None
                 self.z = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 2:
                         raise InvalidPreceedingLayerError(self)
 
@@ -4365,7 +4798,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -4470,7 +4902,7 @@ the layer.</dd>
                 self.x = None
                 self.z = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 3:
                         raise InvalidPreceedingLayerError(self)
 
@@ -4558,6 +4990,10 @@ the layer.</dd>
 <ul class="hlist">
 <li><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></li>
 </ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="ainshamsflow.layers.FastPool2D" href="#ainshamsflow.layers.FastPool2D">FastPool2D</a></li>
+</ul>
 <h3>Methods</h3>
 <dl>
 <dt id="ainshamsflow.layers.Pool2D.__call__"><code class="name flex">
@@ -4609,7 +5045,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -4714,7 +5149,7 @@ the layer.</dd>
                 self.x = None
                 self.z = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 4:
                         raise InvalidPreceedingLayerError(self)
 
@@ -4869,7 +5304,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -4930,7 +5364,7 @@ the layer.</dd>
                 self.input_shape = None
                 self.output_shape = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 self.n_in = n_in
 
                 if self.unk_ch_id is not None:
@@ -4980,7 +5414,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -5037,7 +5470,7 @@ the layer.</dd>
                 self.input_shape = None
                 self.output_shape = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 2:
                         raise InvalidPreceedingLayerError(self)
 
@@ -5101,7 +5534,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -5158,7 +5590,7 @@ the layer.</dd>
                 self.input_shape = None
                 self.output_shape = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 3:
                         raise InvalidPreceedingLayerError(self)
 
@@ -5225,7 +5657,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -5282,7 +5713,7 @@ the layer.</dd>
                 self.input_shape = None
                 self.output_shape = None
 
-        def add_input_shape_to_layers(self, n_in):
+        def add_input_shape_to_layer(self, n_in):
                 if len(n_in) != 4:
                         raise InvalidPreceedingLayerError(self)
 
@@ -5352,7 +5783,6 @@ the layer.</dd>
 <ul class="hlist">
 <li><code><b><a title="ainshamsflow.layers.Layer" href="#ainshamsflow.layers.Layer">Layer</a></b></code>:
 <ul class="hlist">
-<li><code><a title="ainshamsflow.layers.Layer.add_input_shape_to_layer" href="#ainshamsflow.layers.Layer.add_input_shape_to_layer">add_input_shape_to_layer</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.count_params" href="#ainshamsflow.layers.Layer.count_params">count_params</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.diff" href="#ainshamsflow.layers.Layer.diff">diff</a></code></li>
 <li><code><a title="ainshamsflow.layers.Layer.get_weights" href="#ainshamsflow.layers.Layer.get_weights">get_weights</a></code></li>
@@ -5439,6 +5869,12 @@ the layer.</dd>
 <ul class="">
 <li><code><a title="ainshamsflow.layers.Dropout.__call__" href="#ainshamsflow.layers.Dropout.__call__">__call__</a></code></li>
 </ul>
+</li>
+<li>
+<h4><code><a title="ainshamsflow.layers.FastConv2D" href="#ainshamsflow.layers.FastConv2D">FastConv2D</a></code></h4>
+</li>
+<li>
+<h4><code><a title="ainshamsflow.layers.FastPool2D" href="#ainshamsflow.layers.FastPool2D">FastPool2D</a></code></h4>
 </li>
 <li>
 <h4><code><a title="ainshamsflow.layers.Flatten" href="#ainshamsflow.layers.Flatten">Flatten</a></code></h4>

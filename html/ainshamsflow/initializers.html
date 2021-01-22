@@ -90,7 +90,7 @@ class Uniform(Initializer):
 class Normal(Initializer):
         &#34;&#34;&#34;Normal (Gaussian) Distribution Initializer.&#34;&#34;&#34;
 
-        def __init__(self, mean=0, std=1):
+        def __init__(self, mean=0, std=0.1):
                 if not std &gt; 0:
                         raise InvalidRangeError(std, 0)
                 self.mean = mean
@@ -234,7 +234,7 @@ and redefine the <strong>call</strong>() method.</p></div>
 </dd>
 <dt id="ainshamsflow.initializers.Normal"><code class="flex name class">
 <span>class <span class="ident">Normal</span></span>
-<span>(</span><span>mean=0, std=1)</span>
+<span>(</span><span>mean=0, std=0.1)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Normal (Gaussian) Distribution Initializer.</p></div>
@@ -245,7 +245,7 @@ and redefine the <strong>call</strong>() method.</p></div>
 <pre><code class="python">class Normal(Initializer):
         &#34;&#34;&#34;Normal (Gaussian) Distribution Initializer.&#34;&#34;&#34;
 
-        def __init__(self, mean=0, std=1):
+        def __init__(self, mean=0, std=0.1):
                 if not std &gt; 0:
                         raise InvalidRangeError(std, 0)
                 self.mean = mean
