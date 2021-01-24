@@ -76,6 +76,9 @@ finally you can evaluate, predict and show training statistics:
 A more elaborate example usage can be found in [main.py](/main.py) or check out this 
 [demo notebook](https://colab.research.google.com/drive/1sqEeUUkG3bTplhlLb73QCGUbaubX2aXi?usp=sharing).
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)
+](https://colab.research.google.com/drive/1sqEeUUkG3bTplhlLb73QCGUbaubX2aXi?usp=sharing)
+
 ## Team Members:
 * [Pierre Nabil](https://github.com/PierreNabil)
 * [Ahmed Taha](https://github.com/atf01)
