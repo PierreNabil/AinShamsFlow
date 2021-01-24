@@ -78,7 +78,7 @@ class Optimizer:
             loss_values.append(loss_value)
             metrics_values.append(metric_values)
 
-        loss_values = np.array(loss_values).sum()
+        loss_values = np.array(loss_values).mean()
         metrics_values = np.array(metrics_values).mean(axis=0)
 
         if ds_valid is not None:
@@ -88,7 +88,7 @@ class Optimizer:
                 val_loss_values.append(val_loss_value)
                 val_metrics_values.append(val_metric_values)
 
-            val_loss_values = np.array(val_loss_values).sum()
+            val_loss_values = np.array(val_loss_values).mean()
             val_metrics_values = np.array(val_metrics_values).mean(axis=0)
 
         if verbose:
@@ -135,7 +135,7 @@ class Optimizer:
                 loss_values.append(loss_value)
                 metrics_values.append(metric_values)
 
-            loss_values = np.array(loss_values).sum()
+            loss_values = np.array(loss_values).mean()
             metrics_values = np.array(metrics_values).mean(axis=0)
 
             if ds_valid is not None :
@@ -145,12 +145,10 @@ class Optimizer:
                     val_loss_values.append(val_loss_value)
                     val_metrics_values.append(val_metric_values)
 
-                val_loss_values = np.array(val_loss_values).sum()
+                val_loss_values = np.array(val_loss_values).mean()
                 val_metrics_values = np.array(val_metrics_values).mean(axis=0)
 
             history.add(loss_values, metrics_values, val_loss_values, val_metrics_values)
-            if live_plot:
-                history.show()
 
             if verbose:
                 t2 = time.time()
@@ -168,6 +166,9 @@ class Optimizer:
                         end=' '
                     )
                 print()
+
+            if live_plot:
+                history.show()
 
         return history
 

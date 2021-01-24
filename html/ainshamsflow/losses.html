@@ -227,10 +227,12 @@ class LogLossLinear(Loss):
     __name__ = &#34;LogLossLinear&#34;
 
     def __call__(self, y_pred, y_true):
-        return np.sum(np.log(1 + np.exp(-y_true * y_pred)))
+        m = y_pred.shape[0]
+        return np.sum(np.log(1 + np.exp(-y_true * y_pred))) / m
 
     def diff(self, y_pred, y_true):
-        return -y_true * np.exp(-y_true * y_pred) / (1 + np.exp(-y_true * y_pred))
+        m = y_pred.shape[0]
+        return -y_true * np.exp(-y_true * y_pred) / (1 + np.exp(-y_true * y_pred)) / m
 
 
 class LogLossSigmoid(Loss):
@@ -257,8 +259,9 @@ class LogLossSigmoid(Loss):
         return -np.sum(np.log(np.abs(y_true / 2 - 0.5 + y_pred))) / m
 
     def diff(self, y_pred, y_true):
+        m = y_pred.shape[0]
         x = y_true / 2 - 0.5 + y_pred
-        return -np.sign(x) / np.abs(x)
+        return -np.sign(x) / np.abs(x) / m
 
 
 class PerceptronCriterion(Loss):
@@ -336,7 +339,8 @@ class BinaryCrossentropy(Loss):
         return -np.sum(np.where(y_true, np.log(y_pred), np.log(1 - y_pred))) / m
 
     def diff(self, y_pred, y_true):
-        return y_pred - y_true
+        m = y_pred.shape[0]
+        return (y_pred - y_true) / m
 
 
 class CategoricalCrossentropy(Loss):
@@ -358,10 +362,12 @@ class CategoricalCrossentropy(Loss):
     __name__ = &#39;CategoricalCrossentropy&#39;
 
     def __call__(self, y_pred, y_true):
-        return -np.mean(np.log(np.max(y_true * y_pred, axis=1) + 1e-6))
+        m = y_pred.shape[0]
+        return -np.sum(np.log(np.max(y_true * y_pred, axis=1) + 1e-6)) / m
 
     def diff(self, y_pred, y_true):
-        return y_pred - y_true
+        m = y_pred.shape[0]
+        return (y_pred - y_true) / m
 
 
 class SparseCategoricalCrossentropy(Loss):
@@ -385,14 +391,16 @@ class SparseCategoricalCrossentropy(Loss):
     __name__ = &#39;SparseCategoricalCrossentropy&#39;
 
     def __call__(self, y_pred, y_true):
+        m = y_pred.shape[0]
         n_c = y_pred.shape[-1]
         y_true = true_one_hot(y_true, n_c)
-        return -np.mean(np.log(np.max(y_true * y_pred, axis=1)))
+        return -np.sum(np.log(np.max(y_true * y_pred, axis=1))) / m
 
     def diff(self, y_pred, y_true):
+        m = y_pred.shape[0]
         n_c = y_pred.shape[-1]
         y_true = true_one_hot(y_true, n_c)
-        return y_pred - y_true</code></pre>
+        return (y_pred - y_true) / m</code></pre>
 </details>
 </section>
 <section>
@@ -472,7 +480,8 @@ Standalone usage:</p>
         return -np.sum(np.where(y_true, np.log(y_pred), np.log(1 - y_pred))) / m
 
     def diff(self, y_pred, y_true):
-        return y_pred - y_true</code></pre>
+        m = y_pred.shape[0]
+        return (y_pred - y_true) / m</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -527,10 +536,12 @@ Standalone usage:</p>
     __name__ = &#39;CategoricalCrossentropy&#39;
 
     def __call__(self, y_pred, y_true):
-        return -np.mean(np.log(np.max(y_true * y_pred, axis=1) + 1e-6))
+        m = y_pred.shape[0]
+        return -np.sum(np.log(np.max(y_true * y_pred, axis=1) + 1e-6)) / m
 
     def diff(self, y_pred, y_true):
-        return y_pred - y_true</code></pre>
+        m = y_pred.shape[0]
+        return (y_pred - y_true) / m</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -659,10 +670,12 @@ Stand alone usage:</p>
     __name__ = &#34;LogLossLinear&#34;
 
     def __call__(self, y_pred, y_true):
-        return np.sum(np.log(1 + np.exp(-y_true * y_pred)))
+        m = y_pred.shape[0]
+        return np.sum(np.log(1 + np.exp(-y_true * y_pred))) / m
 
     def diff(self, y_pred, y_true):
-        return -y_true * np.exp(-y_true * y_pred) / (1 + np.exp(-y_true * y_pred))</code></pre>
+        m = y_pred.shape[0]
+        return -y_true * np.exp(-y_true * y_pred) / (1 + np.exp(-y_true * y_pred)) / m</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -729,8 +742,9 @@ the logistic loss values in case of linear regression</p>
         return -np.sum(np.log(np.abs(y_true / 2 - 0.5 + y_pred))) / m
 
     def diff(self, y_pred, y_true):
+        m = y_pred.shape[0]
         x = y_true / 2 - 0.5 + y_pred
-        return -np.sign(x) / np.abs(x)</code></pre>
+        return -np.sign(x) / np.abs(x) / m</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -1138,14 +1152,16 @@ and a single floating point value per feature for <code>y_true</code></p>
     __name__ = &#39;SparseCategoricalCrossentropy&#39;
 
     def __call__(self, y_pred, y_true):
+        m = y_pred.shape[0]
         n_c = y_pred.shape[-1]
         y_true = true_one_hot(y_true, n_c)
-        return -np.mean(np.log(np.max(y_true * y_pred, axis=1)))
+        return -np.sum(np.log(np.max(y_true * y_pred, axis=1))) / m
 
     def diff(self, y_pred, y_true):
+        m = y_pred.shape[0]
         n_c = y_pred.shape[-1]
         y_true = true_one_hot(y_true, n_c)
-        return y_pred - y_true</code></pre>
+        return (y_pred - y_true) / m</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
