@@ -320,6 +320,9 @@ class Sequential(Model):
                                 other int =&gt; mini-batch evaluation.
 
                         verbose: Whether to print the evaluation data or return it.
+                                `True` =&gt; prints the evaluation of the model.
+                                `False` =&gt; returns the evaluation in the follwing form:
+                                `(loss_value, [metric1_value, metric2_value, ...])`
 
                 Returns:
                         None: if `verbose` = `True` __OR__
@@ -907,6 +910,9 @@ must be a list of layer objects.</dd>
                                 other int =&gt; mini-batch evaluation.
 
                         verbose: Whether to print the evaluation data or return it.
+                                `True` =&gt; prints the evaluation of the model.
+                                `False` =&gt; returns the evaluation in the follwing form:
+                                `(loss_value, [metric1_value, metric2_value, ...])`
 
                 Returns:
                         None: if `verbose` = `True` __OR__
@@ -1114,7 +1120,10 @@ Only used if <code>x</code> doesn't have the labels included in the dataset obje
 <code>1</code> =&gt; online evaluation,
 other int =&gt; mini-batch evaluation.</dd>
 <dt><strong><code>verbose</code></strong></dt>
-<dd>Whether to print the evaluation data or return it.</dd>
+<dd>Whether to print the evaluation data or return it.
+<code>True</code> =&gt; prints the evaluation of the model.
+<code>False</code> =&gt; returns the evaluation in the follwing form:
+<code>(loss_value, [metric1_value, metric2_value, &hellip;])</code></dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
@@ -1146,6 +1155,9 @@ other int =&gt; mini-batch evaluation.</dd>
                         other int =&gt; mini-batch evaluation.
 
                 verbose: Whether to print the evaluation data or return it.
+                        `True` =&gt; prints the evaluation of the model.
+                        `False` =&gt; returns the evaluation in the follwing form:
+                        `(loss_value, [metric1_value, metric2_value, ...])`
 
         Returns:
                 None: if `verbose` = `True` __OR__

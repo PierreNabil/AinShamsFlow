@@ -44,7 +44,6 @@ class History:
 			self.val_loss_values.append(val_loss_value)
 			self.val_metric_values.append(val_metric_values)
 
-
 	def flipped_metrics(self):
 		"""Return the metric Values as flipped for easy visualization and data extraction."""
 
@@ -58,7 +57,6 @@ class History:
 			np.array(self.metric_values).T,
 			np.array(self.val_metric_values).T
 		], axis=0)
-
 
 	def show(self, show_metrics=True):
 		"""Show the training statistics in an image from saved data."""

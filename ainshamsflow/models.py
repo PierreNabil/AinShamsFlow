@@ -288,6 +288,9 @@ class Sequential(Model):
 				other int => mini-batch evaluation.
 
 			verbose: Whether to print the evaluation data or return it.
+				`True` => prints the evaluation of the model.
+				`False` => returns the evaluation in the follwing form:
+				`(loss_value, [metric1_value, metric2_value, ...])`
 
 		Returns:
 			None: if `verbose` = `True` __OR__

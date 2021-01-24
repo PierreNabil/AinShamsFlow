@@ -189,3 +189,4 @@ class HardSigmoid(Activation):
 
 	def diff(self, z):
 		return np.where(np.logical_not(np.logical_or(np.less(z, -2.5), np.greater(z, 2.5)), 0.2, 0))
+

@@ -159,6 +159,8 @@ A more elaborate example usage can be found in [main.py](/main.py) or check out 
         - CNN Layers 2D:
             - [x] Conv
             - [x] Pool (Avg and Max)
+            - [x] FastConv
+            - [x] FastPool (Avg and Max)
             - [x] GlobalPool (Avg and Max)
             - [x] Upsample
         
@@ -224,7 +226,7 @@ A more elaborate example usage can be found in [main.py](/main.py) or check out 
     
         - [x] History Class for showing training statistics
         - [x] ```verbose``` parameter in training
-        - [ ] live plotting of training statistics
+        - [x] live plotting of training statistics
 
     - [x] A utils module for reading and saving models
     - [ ] Adding CUDA support
@@ -240,5 +242,5 @@ mentioned above.
 - [x] Construct an Architecture ([LeNet](https://engmrk.com/lenet-5-a-classic-cnn-architecture/) 
 or [AlexNet](https://dl.acm.org/doi/abs/10.1145/3065386)) and make sure all of its components are 
 provided in your framework.
-- [ ] Train and test the model until a good accuracy is reached (Evaluation Metrics will need to be implemented in the framework also)
-- [ ] Save the model into a compressed format
+- [x] Train and test the model until a good accuracy is reached (Evaluation Metrics will need to be implemented in the framework also)
+- [x] Save the model into a compressed format
