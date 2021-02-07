@@ -29,6 +29,8 @@ This is how the Design Structure should work in our Framework.
 
 ![Desgin Structure](/images/Design%20Structure.png)
 
+You can read more details on our [documentation.](https://pierrenabil.github.io/AinShamsFlow/)
+
 ## Install:
 You can install the latest available version as follows:
 ```shell
